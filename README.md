@@ -2,6 +2,8 @@
 
 Combined reservation views for TREK trip pages.
 
+## Screenshots
+
 ![screenshot](./docs/screenshot.png)
 
 ## What it does
@@ -33,7 +35,7 @@ date/type/title/status sorting, card view, and a compact table view.
 
 ## Setup
 
-Install dependencies and run the SDK dev server:
+Install dependencies and start the client builder plus SDK dev server:
 
 ```bash
 npm install
@@ -47,12 +49,9 @@ the plugin iframe, and the iframe calls the plugin's authenticated
 The repository includes a synthetic `dev-fixtures.json` for the SDK preview's
 trip `42`. It contains example-only data and is never included in `plugin.zip`.
 
-## Plugin tooling
-
-This plugin uses React and Vite while still producing TREK's required static,
-self-contained client artifact. See [Plugin tooling](docs/plugin-tooling.md) for
-the development workflow, boundary constraints, build pipeline, artifact
-layout, validation, packaging, and maintenance notes.
+For a release, run `npm run validate` and `npm run pack`. The generated
+`build/` directory is the clean plugin root consumed by the TREK SDK and can be
+used for a local TREK dev-link.
 
 ## License
 

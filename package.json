@@ -5,8 +5,7 @@
   "type": "commonjs",
   "scripts": {
     "build": "vite build",
-    "dev": "node scripts/dev.mjs",
-    "dev:build": "vite build --watch",
+    "dev": "npm run build && node scripts/dev.mjs",
     "dev:sdk": "trek-plugin-sdk dev build",
     "pack": "npm run build && npx -y trek-plugin-sdk pack build --out plugin.zip",
     "validate": "npm run build && npx -y trek-plugin-sdk validate build"

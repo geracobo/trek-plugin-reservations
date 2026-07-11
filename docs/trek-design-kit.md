@@ -27,7 +27,7 @@ The upstream TypeScript source is available publicly in TREK:
 ## How it enters the plugin
 
 `src/client/index.html` contains the exact `<!-- trek:ui -->` marker. Vite keeps
-that marker in `build/client/index.html`. The SDK's `injectTrekUi` function
+that marker in the built `build/client/index.html`. The SDK's `injectTrekUi` function
 replaces it during `dev` and `pack` with:
 
 ```html
@@ -35,8 +35,9 @@ replaces it during `dev` and `pack` with:
 <script data-trek-ui>/* TREK_THEME_JS */</script>
 ```
 
-The source HTML deliberately does not import either file. The iframe CSP allows
-the inlined result and prevents ordinary external stylesheet or script loading.
+The source HTML deliberately does not import either design-kit file. Vite emits
+the plugin's JavaScript and stylesheet as normal static files under `build/client/`,
+which TREK loads alongside the SDK-injected design kit.
 
 ## CSS supplied by the kit
 
@@ -79,6 +80,6 @@ This plugin does use the bridge and the CSS primitives.
 ## Inspecting the exact packed result
 
 Run `npm run pack`, then inspect `client/index.html` inside `plugin.zip`. The
-blocks marked with `data-trek-ui` are the exact kit shipped for that artifact.
-The separate style block identified by `reservations-client-styles` is this
-plugin's Vite-bundled stylesheet.
+blocks marked with `data-trek-ui` are the exact kit shipped for that artifact;
+the plugin's Vite-bundled JavaScript and stylesheet remain separate assets under
+`client/assets/`.
