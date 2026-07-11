@@ -13,6 +13,11 @@
     "db:read:trips",
     "db:read:files"
   ],
+  "capabilities": {
+    "tripPage": {
+      "position": 1
+    }
+  },
   "requiredAddons": [],
   "pluginDependencies": [],
   "routes": [
