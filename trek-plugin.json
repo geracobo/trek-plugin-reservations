@@ -1,0 +1,25 @@
+{
+  "id": "reservations",
+  "name": "Reservations",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "author": "geracobo",
+  "description": "Enhanced reservation views for transportation and bookings",
+  "icon": "BookMarked",
+  "type": "trip-page",
+  "trek": ">=3.2.1 <4.0.0",
+  "nativeModules": false,
+  "permissions": [
+    "db:read:trips",
+    "db:read:files"
+  ],
+  "requiredAddons": [],
+  "pluginDependencies": [],
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/reservations",
+      "auth": true
+    }
+  ]
+}

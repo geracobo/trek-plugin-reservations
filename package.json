@@ -1,0 +1,30 @@
+{
+  "name": "reservations",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "build": "vite build",
+    "dev": "node scripts/dev.mjs",
+    "dev:build": "vite build --watch",
+    "dev:sdk": "trek-plugin-sdk dev build",
+    "pack": "npm run build && npx -y trek-plugin-sdk pack build --out plugin.zip",
+    "validate": "npm run build && npx -y trek-plugin-sdk validate build"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^6.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.2",
+    "@types/node": "^22.20.1",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "tailwindcss": "^4.3.2",
+    "trek-plugin-sdk": "^1.3.1",
+    "typescript": "^5.7.2"
+  }
+}

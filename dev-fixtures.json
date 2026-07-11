@@ -1,0 +1,77 @@
+{
+  "trips": {
+    "42": {
+      "members": [1],
+      "data": {
+        "id": 42,
+        "title": "SDK Preview Trip",
+        "start_date": "2026-09-01",
+        "end_date": "2026-09-08",
+        "currency": "EUR"
+      },
+      "places": [
+        {
+          "id": 101,
+          "name": "Preview Hotel",
+          "address": "1 Example Street"
+        }
+      ],
+      "reservations": [
+        {
+          "id": 201,
+          "trip_id": 42,
+          "title": "Flight to Preview City",
+          "type": "flight",
+          "status": "confirmed",
+          "reservation_time": "2026-09-01T07:00:00",
+          "reservation_end_time": "2026-09-01T09:30:00",
+          "confirmation_number": "PREVIEW1",
+          "metadata": "{\"airline\":\"Example Air\",\"flight_number\":\"EA 101\",\"departure_airport\":\"AAA\",\"arrival_airport\":\"BBB\"}",
+          "endpoints": [
+            { "name": "Origin Airport (AAA)", "role": "from", "sequence": 0 },
+            { "name": "Destination Airport (BBB)", "role": "to", "sequence": 1 }
+          ]
+        },
+        {
+          "id": 202,
+          "trip_id": 42,
+          "title": "Train - Preview Central to Example Station",
+          "type": "train",
+          "status": "pending",
+          "reservation_time": "2026-09-04T10:00:00",
+          "reservation_end_time": "2026-09-04T12:15:00",
+          "metadata": "{\"train_number\":\"EX 42\",\"legs\":[{\"from\":\"Preview Central\",\"to\":\"Example Station\",\"dep_time\":\"10:00\",\"arr_time\":\"12:15\"}]}"
+        },
+        {
+          "id": 203,
+          "trip_id": 42,
+          "place_id": 101,
+          "title": "Preview Hotel",
+          "type": "hotel",
+          "status": "confirmed",
+          "reservation_time": "2026-09-03",
+          "reservation_end_time": "2026-09-06",
+          "accommodation_name": "Preview Hotel",
+          "confirmation_number": "HOTEL42",
+          "metadata": "{\"check_in_time\":\"15:00\",\"check_out_time\":\"11:00\"}"
+        },
+        {
+          "id": 204,
+          "trip_id": 42,
+          "title": "Preview Dinner",
+          "type": "restaurant",
+          "status": "confirmed",
+          "reservation_time": "2026-09-05T19:30:00",
+          "location": "Example Restaurant"
+        }
+      ]
+    }
+  },
+  "users": {
+    "1": {
+      "id": 1,
+      "username": "dev",
+      "display_name": "Dev User"
+    }
+  }
+}

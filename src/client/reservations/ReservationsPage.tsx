@@ -1,0 +1,192 @@
+import { useEffect, useMemo, useState } from 'react'
+import type { ReservationsResponse, Reservation, StatusFilter, Trip, ViewMode } from './types'
+import { filterAndSortReservations, getType, reservationRoute, reservationStatus, reservationTitle, TRANSPORT_TYPES, TYPE_OPTIONS } from './model'
+import { ReservationCardView } from './ReservationCardView'
+import { ReservationCalendarView } from './ReservationCalendarView'
+import { ReservationTableView, TABLE_COLUMNS } from './ReservationTableView'
+import type { TableColumnKey } from './ReservationTableView'
+import { ReservationHeader } from './ReservationHeader'
+import type { ReservationCategory } from './ReservationHeader'
+
+interface LoadState {
+  tripId: number | null
+  trip: Trip | null
+  reservations: Reservation[]
+  loading: boolean
+  error: string | null
+}
+
+function reservationCategory(reservation: Reservation): Exclude<ReservationCategory, 'all'> {
+  if (TRANSPORT_TYPES.has(reservation.type ?? '')) return 'transportation'
+  if (reservation.type === 'hotel') return 'accommodation'
+  return 'booking'
+}
+
+const defaultTableColumns = new Set<TableColumnKey>(TABLE_COLUMNS.map((column) => column.key))
+
+function countByType(reservations: Reservation[]) {
+  return reservations.reduce<Record<string, number>>((acc, reservation) => {
+    const type = reservation.type ?? 'other'
+    acc[type] = (acc[type] ?? 0) + 1
+    return acc
+  }, {})
+}
+
+function reservationSearchText(reservation: Reservation) {
+  return [
+    reservationTitle(reservation),
+    getType(reservation.type).label,
+    reservationStatus(reservation),
+    reservationRoute(reservation).join(' '),
+    reservation.location || reservation.accommodation_name || reservation.place_name,
+    reservation.confirmation_number,
+    reservation.notes,
+    reservation.external_source,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+}
+
+export function ReservationsPage() {
+  const [loadState, setLoadState] = useState<LoadState>({
+    tripId: null,
+    trip: null,
+    reservations: [],
+    loading: true,
+    error: null,
+  })
+  const [viewMode, setViewMode] = useState<ViewMode>('cards')
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [category, setCategory] = useState<ReservationCategory>('all')
+  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(() => new Set())
+
+  useEffect(() => {
+    return window.trek.onContext((ctx) => {
+      const tripId = ctx.tripId ? Number(ctx.tripId) : null
+      if (!tripId) {
+        setLoadState({ tripId: null, trip: null, reservations: [], loading: false, error: 'Open this plugin from a trip page so TREK can provide a trip id.' })
+        return
+      }
+
+      setLoadState((previous) => {
+        if (previous.tripId === tripId && !previous.error) return previous
+        return { ...previous, tripId, loading: true, error: null }
+      })
+
+      window.trek
+        .invoke<ReservationsResponse>(`/reservations?tripId=${encodeURIComponent(tripId)}`)
+        .then((data) => {
+          setLoadState({
+            tripId,
+            trip: data.trip,
+            reservations: Array.isArray(data.reservations) ? data.reservations : [],
+            loading: false,
+            error: null,
+          })
+        })
+        .catch((error: unknown) => {
+          setLoadState({
+            tripId,
+            trip: null,
+            reservations: [],
+            loading: false,
+            error: error instanceof Error ? error.message : String(error),
+          })
+        })
+    })
+  }, [])
+
+  const typeCounts = useMemo(() => countByType(loadState.reservations), [loadState.reservations])
+  const categoryCounts = useMemo(() => loadState.reservations.reduce<Record<Exclude<ReservationCategory, 'all'>, number>>((counts, reservation) => {
+    const key = reservationCategory(reservation)
+    counts[key] += 1
+    return counts
+  }, { transportation: 0, accommodation: 0, booking: 0 }), [loadState.reservations])
+  const secondaryTypes = useMemo(() => category === 'all'
+    ? []
+    : TYPE_OPTIONS.filter((option) => typeCounts[option.value] && reservationCategory({ id: 0, type: option.value }) === category), [category, typeCounts])
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    const inCategory = category === 'all'
+      ? loadState.reservations
+      : loadState.reservations.filter((reservation) => reservationCategory(reservation) === category)
+    return filterAndSortReservations(inCategory, selectedTypes, statusFilter)
+      .filter((reservation) => !query || reservationSearchText(reservation).includes(query))
+  }, [loadState.reservations, category, selectedTypes, statusFilter, search])
+
+  const toggleType = (type: string) => {
+    setSelectedTypes((current) => {
+      const next = new Set(current)
+      if (next.has(type)) next.delete(type)
+      else next.add(type)
+      return next
+    })
+  }
+
+  const selectCategory = (next: ReservationCategory) => {
+    setCategory(next)
+    setSelectedTypes(new Set())
+  }
+
+  const clearFilters = () => {
+    setSearch('')
+    setSelectedTypes(new Set())
+    setStatusFilter('all')
+  }
+
+  const hasActiveFilters = search.trim() || selectedTypes.size > 0 || statusFilter !== 'all'
+
+  return (
+    <main className="h-full min-h-0 overflow-y-auto overscroll-contain px-5 pt-3.5 pb-[72px] max-[720px]:p-4">
+      <ReservationHeader
+        reservationCount={loadState.reservations.length}
+        filteredCount={filtered.length}
+        category={category}
+        categoryCounts={categoryCounts}
+        viewMode={viewMode}
+        search={search}
+        secondaryTypes={secondaryTypes}
+        selectedTypes={selectedTypes}
+        typeCounts={typeCounts}
+        statusFilter={statusFilter}
+        hasActiveFilters={Boolean(hasActiveFilters)}
+        onCategoryChange={selectCategory}
+        onViewModeChange={setViewMode}
+        onSearchChange={setSearch}
+        onTypeToggle={toggleType}
+        onStatusChange={setStatusFilter}
+        onClearFilters={clearFilters}
+      />
+
+      {loadState.loading ? (
+        <div className="trek-card px-5 py-14 text-center [&_h2]:mb-1.5 [&_h2]:text-[15px] [&_p]:mx-auto [&_p]:max-w-[520px] [&_p]:text-[13px] [&_p]:leading-[1.45] [&_p]:text-content-muted">
+          <h2>Loading</h2>
+          <p>Reading reservations for this trip.</p>
+        </div>
+      ) : loadState.error ? (
+        <div className="trek-card px-5 py-14 text-center [&_h2]:mb-1.5 [&_h2]:text-[15px] [&_p]:mx-auto [&_p]:max-w-[520px] [&_p]:text-[13px] [&_p]:leading-[1.45] [&_p]:text-content-muted">
+          <h2 className="text-danger">Unable to load reservations</h2>
+          <p>{loadState.error}</p>
+        </div>
+      ) : loadState.reservations.length === 0 ? (
+        <div className="trek-card px-5 py-14 text-center [&_h2]:mb-1.5 [&_h2]:text-[15px] [&_p]:mx-auto [&_p]:max-w-[520px] [&_p]:text-[13px] [&_p]:leading-[1.45] [&_p]:text-content-muted">
+          <h2>No reservations yet</h2>
+          <p>Add transportation or booking reservations in the TREK planner and they will appear here.</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="trek-card px-5 py-14 text-center [&_h2]:mb-1.5 [&_h2]:text-[15px] [&_p]:mx-auto [&_p]:max-w-[520px] [&_p]:text-[13px] [&_p]:leading-[1.45] [&_p]:text-content-muted">
+          <h2>No reservations found</h2>
+          <p>Adjust the filters or search.</p>
+        </div>
+      ) : viewMode === 'table' ? (
+        <ReservationTableView reservations={filtered} visibleColumns={defaultTableColumns} />
+      ) : viewMode === 'calendar' ? (
+        <ReservationCalendarView reservations={filtered} trip={loadState.trip} />
+      ) : (
+        <ReservationCardView reservations={filtered} trip={loadState.trip} />
+      )}
+    </main>
+  )
+}

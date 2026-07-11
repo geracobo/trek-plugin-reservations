@@ -1,0 +1,83 @@
+@layer theme, base, components, utilities;
+
+/* TREK owns the reset, so Tailwind Preflight is intentionally omitted. */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@theme inline {
+  --color-surface: var(--bg-card);
+  --color-surface-primary: var(--bg-primary);
+  --color-surface-secondary: var(--bg-secondary);
+  --color-surface-muted: var(--bg-tertiary);
+  --color-surface-hover: var(--bg-hover);
+  --color-content: var(--text-primary);
+  --color-content-secondary: var(--text-secondary);
+  --color-content-muted: var(--text-muted);
+  --color-content-faint: var(--text-faint);
+  --color-edge: var(--border-primary);
+  --color-edge-secondary: var(--border-secondary);
+  --color-edge-faint: var(--border-faint);
+  --color-accent: var(--accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-system);
+  --radius-card: var(--radius-lg);
+}
+
+/* A trip-page plugin scrolls inside TREK's fixed-height iframe. */
+html,
+body,
+#root {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* The design kit is unlayered while Tailwind utilities are layered, so its
+   `.trek-card { padding: 16px }` otherwise beats Tailwind's `p-0`. */
+.trek-card.p-0 {
+  padding: 0;
+}
+
+/* Search filters immediately while typing; it does not need a focus treatment. */
+.reservation-search-input:focus,
+.reservation-search-input:focus-visible {
+  border-color: var(--border-primary);
+  box-shadow: none;
+  outline: none;
+}
+
+/* These controls use the design-kit button base, whose unlayered styles take
+   precedence over Tailwind's `aria-pressed:*` utilities. */
+.reservation-view-mode .trek-btn[aria-pressed="true"] {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  box-shadow: none;
+}
+
+.reservation-view-mode .trek-btn {
+  min-height: 28px;
+  margin: 1px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.reservation-status-filter .trek-btn[aria-pressed="true"] {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.reservation-calendar-nav {
+  background: var(--bg-tertiary);
+  border-color: var(--border-primary);
+  color: var(--text-primary);
+  opacity: 1;
+  box-shadow: var(--shadow-sm);
+}
+
+.reservation-calendar-nav:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
