@@ -99,6 +99,7 @@ async function saveReservationHandler(req, ctx) {
     if (!(await ctx.trips.getById(tripId))) return json(404, { error: 'trip not found' })
     const payload = { ...input, title: input.title.trim() }
     if (accommodation) {
+      const venue = accommodation.venue && typeof accommodation.venue === 'object' ? accommodation.venue : null
       const fields = {
         place_id: Number(accommodation.place_id),
         start_day_id: Number(accommodation.start_day_id),
@@ -107,6 +108,13 @@ async function saveReservationHandler(req, ctx) {
         check_in_end: accommodation.check_in_end || null,
         check_out: accommodation.check_out || null,
         confirmation: accommodation.confirmation || null,
+      }
+      if (!Number.isInteger(fields.place_id) && venue && typeof venue.name === 'string' && venue.name.trim()) {
+        const createdPlace = await ctx.places.create(tripId, {
+          name: venue.name.trim(),
+          address: typeof venue.address === 'string' && venue.address.trim() ? venue.address.trim() : undefined,
+        })
+        fields.place_id = Number(createdPlace?.id)
       }
       if (
         Number.isInteger(fields.place_id) &&

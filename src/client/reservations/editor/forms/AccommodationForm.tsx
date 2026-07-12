@@ -55,9 +55,9 @@ export function AccommodationForm({
       address: reservation?.location || '',
       code: reservation?.confirmation_number || '',
       status: reservation?.status || 'pending',
-      checkIn: typeof meta.check_in_time === 'string' ? meta.check_in_time : '',
-      checkInUntil: typeof meta.check_in_end_time === 'string' ? meta.check_in_end_time : '',
-      checkOut: typeof meta.check_out_time === 'string' ? meta.check_out_time : '',
+      checkIn: acc?.check_in || (typeof meta.check_in_time === 'string' ? meta.check_in_time : ''),
+      checkInUntil: acc?.check_in_end || (typeof meta.check_in_end_time === 'string' ? meta.check_in_end_time : ''),
+      checkOut: acc?.check_out || (typeof meta.check_out_time === 'string' ? meta.check_out_time : ''),
       url: reservation?.url || reservation?.booking_url || '',
       notes: reservation?.notes || '',
     })
@@ -79,6 +79,14 @@ export function AccommodationForm({
         notes: draft.notes,
         reservation_time: null,
         reservation_end_time: null,
+        metadata:
+          draft.checkIn || draft.checkInUntil || draft.checkOut
+            ? {
+                check_in_time: draft.checkIn || null,
+                check_in_end_time: draft.checkInUntil || null,
+                check_out_time: draft.checkOut || null,
+              }
+            : null,
         endpoints: [],
       },
       accommodation: {
@@ -90,6 +98,7 @@ export function AccommodationForm({
         check_in_end: draft.checkInUntil || null,
         check_out: draft.checkOut || null,
         confirmation: draft.code || null,
+        venue: draft.placeId ? null : { name: draft.title, address: draft.address || null },
       },
     })
   }, [accommodations, draft, onDraftChange, reservation?.accommodation_id, type])

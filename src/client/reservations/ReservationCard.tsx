@@ -58,13 +58,13 @@ function Field({
         {label}
       </div>
       <div
-        className={`min-h-[34px] rounded-[10px] bg-surface-muted px-2.5 py-2 text-[12.5px] font-semibold text-content [overflow-wrap:anywhere] ${mono ? 'font-mono' : ''} ${centered ? 'text-center' : ''}`}
+        className={`min-h-[34px] rounded-[10px] bg-surface-muted px-2.5 py-2 text-[12.5px] font-semibold text-content ${Icon ? 'flex items-center gap-1.5' : '[overflow-wrap:anywhere]'} ${mono ? 'font-mono' : ''} ${centered ? 'text-center' : ''}`}
       >
         {Icon ? (
-          <span className="flex items-center gap-1.5">
+          <>
             <Icon className="shrink-0 text-content-faint" size={14} />
-            <span>{value}</span>
-          </span>
+            <span className="min-w-0 truncate">{value}</span>
+          </>
         ) : (
           value
         )}
@@ -329,6 +329,8 @@ export function ReservationCard({ reservation, trip, days, accommodations, onEdi
       ? { day: 'Day', date: '—', ...(isAccommodation ? { endDay: 'Day', endDate: '—' } : {}) }
       : null
   const attachedFiles = reservation.files ?? []
+  const locationField = fields.find((field) => field.label === 'Location')
+  const detailFields = fields.filter((field) => field.label !== 'Location')
   return (
     <article
       className={`trek-card flex min-w-0 flex-col overflow-hidden rounded-xl border p-0 transition-shadow duration-150 hover:shadow-md ${confirmed ? 'border-success/25' : 'border-warning/25'}`}
@@ -413,7 +415,7 @@ export function ReservationCard({ reservation, trip, days, accommodations, onEdi
             <Field label="Date" value={reservationDateRange(reservation)} centered />
             <Field label="Time" value={reservationTimeRange(reservation)} centered />
             <Field label="Confirmation code" value={reservation.confirmation_number} mono />
-            {fields.map((field) => (
+            {detailFields.map((field) => (
               <Field
                 key={`${field.label}-${field.value}`}
                 label={field.label}
@@ -423,6 +425,8 @@ export function ReservationCard({ reservation, trip, days, accommodations, onEdi
             ))}
           </div>
         ) : null}
+
+        {locationField ? <Field label={locationField.label} value={locationField.value} Icon={MapPin} /> : null}
 
         {!isFlight && route.length >= 2 ? (
           <div className="flex flex-wrap items-center justify-center gap-2 rounded-[10px] bg-surface-muted px-3 py-2 text-[12.5px] text-content">
@@ -452,7 +456,7 @@ export function ReservationCard({ reservation, trip, days, accommodations, onEdi
           </div>
         ) : null}
 
-        {reservation.location && !fields.some((field) => field.label === 'Location') ? (
+        {reservation.location && !locationField ? (
           <div className="flex min-w-0 items-start gap-[7px] text-[12.5px] leading-[1.45] text-content-muted">
             <MapPin className="mt-0.5 shrink-0 text-content-faint" size={14} />
             <span>{reservation.location}</span>

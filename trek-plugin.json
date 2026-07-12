@@ -15,6 +15,7 @@
     "db:read:costs",
     "db:write:reservations",
     "db:write:accommodations",
+    "db:write:places",
     "db:write:files",
     "db:write:costs",
     "http:outbound:nominatim.openstreetmap.org",

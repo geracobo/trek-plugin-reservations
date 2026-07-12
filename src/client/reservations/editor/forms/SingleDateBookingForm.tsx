@@ -5,12 +5,21 @@ import { Field, inputClass } from '../FormFields'
 import { PlaceInputSearch } from '../PlaceInputSearch'
 import { DatePicker } from '../DatePicker'
 import { TimePicker } from '../TimePicker'
+import { BookingAssignmentSelect } from '../BookingAssignmentSelect'
 
-export function SingleDateBookingForm({ tripId, type, reservation, places, onDraftChange }: ReservationFormProps) {
+export function SingleDateBookingForm({
+  tripId,
+  type,
+  reservation,
+  days,
+  places,
+  onDraftChange,
+}: ReservationFormProps) {
   const [draft, setDraft] = useState({
     title: '',
     date: '',
     time: '',
+    assignmentId: '',
     placeId: '',
     location: '',
     code: '',
@@ -24,6 +33,7 @@ export function SingleDateBookingForm({ tripId, type, reservation, places, onDra
       title: reservation?.title || '',
       date,
       time: time.slice(0, 5),
+      assignmentId: reservation?.assignment_id ? String(reservation.assignment_id) : '',
       placeId: reservation?.place_id ? String(reservation.place_id) : '',
       location: reservation?.location || '',
       code: reservation?.confirmation_number || '',
@@ -40,6 +50,7 @@ export function SingleDateBookingForm({ tripId, type, reservation, places, onDra
         type,
         title: draft.title,
         status: draft.status,
+        assignment_id: draft.assignmentId ? Number(draft.assignmentId) : null,
         place_id: draft.placeId || null,
         location: draft.location,
         confirmation_number: draft.code,
@@ -62,15 +73,31 @@ export function SingleDateBookingForm({ tripId, type, reservation, places, onDra
           placeholder="e.g. Lufthansa LH123, Hotel Adlon, ..."
         />
       </Field>
+      <BookingAssignmentSelect
+        days={days}
+        value={draft.assignmentId}
+        onChange={(assignmentId, dayDate) =>
+          setDraft((current) => ({ ...current, assignmentId, date: current.date || dayDate || '' }))
+        }
+      />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Date">
           <DatePicker value={draft.date} onChange={(value) => set('date', value)} />
         </Field>
         <Field label="Time">
-          <TimePicker value={draft.time} onChange={(value) => set('time', value)} />
+          <TimePicker
+            value={draft.time}
+            onChange={(value) =>
+              setDraft((current) => ({
+                ...current,
+                time: value,
+                date: current.date || new Date().toISOString().slice(0, 10),
+              }))
+            }
+          />
         </Field>
       </div>
-      <Field label="Link place">
+      <Field label="Place / Activity">
         <select
           data-trek-native
           className={inputClass}

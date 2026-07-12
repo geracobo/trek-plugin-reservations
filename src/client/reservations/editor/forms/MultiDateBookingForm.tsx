@@ -5,14 +5,16 @@ import { Field, inputClass } from '../FormFields'
 import { PlaceInputSearch } from '../PlaceInputSearch'
 import { DatePicker } from '../DatePicker'
 import { TimePicker } from '../TimePicker'
+import { BookingAssignmentSelect } from '../BookingAssignmentSelect'
 
-export function MultiDateBookingForm({ tripId, type, reservation, places, onDraftChange }: ReservationFormProps) {
+export function MultiDateBookingForm({ tripId, type, reservation, days, places, onDraftChange }: ReservationFormProps) {
   const [draft, setDraft] = useState({
     title: '',
     startDate: '',
     startTime: '',
     endDate: '',
     endTime: '',
+    assignmentId: '',
     placeId: '',
     location: '',
     code: '',
@@ -29,6 +31,7 @@ export function MultiDateBookingForm({ tripId, type, reservation, places, onDraf
       startTime: startTime.slice(0, 5),
       endDate,
       endTime: endTime.slice(0, 5),
+      assignmentId: reservation?.assignment_id ? String(reservation.assignment_id) : '',
       placeId: reservation?.place_id ? String(reservation.place_id) : '',
       location: reservation?.location || '',
       code: reservation?.confirmation_number || '',
@@ -46,13 +49,14 @@ export function MultiDateBookingForm({ tripId, type, reservation, places, onDraf
         type,
         title: draft.title,
         status: draft.status,
+        assignment_id: draft.assignmentId ? Number(draft.assignmentId) : null,
         place_id: draft.placeId || null,
         location: draft.location,
         confirmation_number: draft.code,
         url: draft.url,
         notes: draft.notes,
         reservation_time: dateTime(draft.startDate, draft.startTime),
-        reservation_end_time: dateTime(draft.endDate, draft.endTime),
+        reservation_end_time: dateTime(draft.endDate || (draft.endTime ? draft.startDate : ''), draft.endTime),
         endpoints: [],
       },
     })
@@ -68,12 +72,28 @@ export function MultiDateBookingForm({ tripId, type, reservation, places, onDraf
           placeholder="e.g. Lufthansa LH123, Hotel Adlon, ..."
         />
       </Field>
+      <BookingAssignmentSelect
+        days={days}
+        value={draft.assignmentId}
+        onChange={(assignmentId, dayDate) =>
+          setDraft((current) => ({ ...current, assignmentId, startDate: current.startDate || dayDate || '' }))
+        }
+      />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Date">
           <DatePicker value={draft.startDate} onChange={(value) => set('startDate', value)} />
         </Field>
         <Field label="Start time">
-          <TimePicker value={draft.startTime} onChange={(value) => set('startTime', value)} />
+          <TimePicker
+            value={draft.startTime}
+            onChange={(value) =>
+              setDraft((current) => ({
+                ...current,
+                startTime: value,
+                startDate: current.startDate || new Date().toISOString().slice(0, 10),
+              }))
+            }
+          />
         </Field>
         <Field label="End date">
           <DatePicker value={draft.endDate} onChange={(value) => set('endDate', value)} />
@@ -82,7 +102,7 @@ export function MultiDateBookingForm({ tripId, type, reservation, places, onDraf
           <TimePicker value={draft.endTime} onChange={(value) => set('endTime', value)} />
         </Field>
       </div>
-      <Field label="Link place">
+      <Field label="Place / Activity">
         <select
           data-trek-native
           className={inputClass}
