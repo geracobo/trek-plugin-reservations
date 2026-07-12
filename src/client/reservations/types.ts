@@ -119,6 +119,17 @@ export interface Reservation {
   [key: string]: unknown
 }
 
+export interface Cost {
+  id: number
+  reservation_id?: number | null
+  name?: string
+  total_price?: number | null
+  currency?: string | null
+  category?: string | null
+  expense_date?: string | null
+  [key: string]: unknown
+}
+
 export interface ReservationsResponse {
   // `ctx.trips.getById()`
   trip: Trip
@@ -129,6 +140,7 @@ export interface ReservationsResponse {
   days: Day[]
   accommodations: Accommodation[]
   files: ReservationFile[]
+  costs: Cost[]
 }
 
 export type ViewMode = 'cards' | 'table' | 'calendar'

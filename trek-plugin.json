@@ -12,9 +12,11 @@
   "permissions": [
     "db:read:trips",
     "db:read:files",
+    "db:read:costs",
     "db:write:reservations",
     "db:write:accommodations",
     "db:write:files",
+    "db:write:costs",
     "http:outbound:nominatim.openstreetmap.org",
     "http:outbound:places.googleapis.com"
   ],

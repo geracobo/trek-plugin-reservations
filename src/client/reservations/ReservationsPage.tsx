@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type {
   Accommodation,
+  Cost,
   Day,
   Place,
   ReservationFile,
@@ -36,6 +37,7 @@ interface ReservationsPageState {
   days: Day[]
   accommodations: Accommodation[]
   files: ReservationFile[]
+  costs: Cost[]
   loading: boolean
   error: string | null
 }
@@ -81,6 +83,7 @@ export function ReservationsPage() {
     days: [],
     accommodations: [],
     files: [],
+    costs: [],
     loading: true,
     error: null,
   })
@@ -105,6 +108,7 @@ export function ReservationsPage() {
           days: [],
           accommodations: [],
           files: [],
+          costs: [],
           loading: false,
           error: 'Open this plugin from a trip page so TREK can provide a trip id.',
         })
@@ -127,6 +131,7 @@ export function ReservationsPage() {
             days: Array.isArray(data.days) ? data.days : [],
             accommodations: Array.isArray(data.accommodations) ? data.accommodations : [],
             files: Array.isArray(data.files) ? data.files : [],
+            costs: Array.isArray(data.costs) ? data.costs : [],
             loading: false,
             error: null,
           })
@@ -140,6 +145,7 @@ export function ReservationsPage() {
             days: [],
             accommodations: [],
             files: [],
+            costs: [],
             loading: false,
             error: error instanceof Error ? error.message : String(error),
           })
@@ -248,6 +254,64 @@ export function ReservationsPage() {
     }
   }
 
+  const createCost = async (reservation: Reservation) => {
+    if (!pageState.tripId) return
+    const category =
+      reservation.type === 'flight'
+        ? 'flights'
+        : reservation.type === 'hotel'
+          ? 'accommodation'
+          : reservation.type === 'restaurant'
+            ? 'food'
+            : ['train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transport_other', 'transit'].includes(
+                  reservation.type || '',
+                )
+              ? 'transport'
+              : ['event', 'tour'].includes(reservation.type || '')
+                ? 'activities'
+                : 'other'
+    try {
+      const result = await window.trek.invoke<{ cost: Cost }>('/costs/save', {
+        method: 'POST',
+        body: {
+          tripId: pageState.tripId,
+          input: {
+            name: reservation.title || 'Reservation',
+            total_price: 0,
+            currency: pageState.trip?.currency || 'EUR',
+            category,
+            reservation_id: reservation.id,
+          },
+        },
+      })
+      setPageState((current) => ({ ...current, costs: [...current.costs, result.cost] }))
+      window.trek.notify('success', 'Linked cost created')
+    } catch (error) {
+      window.trek.notify('error', error instanceof Error ? error.message : 'Unable to create linked cost')
+    }
+  }
+  const openCost = () => {
+    window.trek.notify('info', 'Open the Costs tab to edit this linked cost.')
+  }
+  const deleteCost = async (cost: Cost) => {
+    if (!pageState.tripId) return
+    const confirmed = await window.trek.confirm({
+      title: 'Remove expense',
+      message: `Remove “${cost.name || 'this expense'}” from this reservation?`,
+      confirmLabel: 'Remove',
+      cancelLabel: 'Cancel',
+      danger: true,
+    })
+    if (!confirmed) return
+    try {
+      await window.trek.invoke('/costs', { method: 'DELETE', body: { tripId: pageState.tripId, costId: cost.id } })
+      setPageState((current) => ({ ...current, costs: current.costs.filter((item) => item.id !== cost.id) }))
+      window.trek.notify('success', 'Expense removed')
+    } catch (error) {
+      window.trek.notify('error', error instanceof Error ? error.message : 'Unable to remove expense')
+    }
+  }
+
   const hasActiveFilters = search.trim() || selectedTypes.size > 0 || statusFilter !== 'all'
 
   return (
@@ -327,8 +391,12 @@ export function ReservationsPage() {
         places={pageState.places}
         accommodations={pageState.accommodations}
         files={pageState.files}
+        costs={pageState.costs}
         onClose={() => setDialogOpen(false)}
         onSaved={applySavedReservation}
+        onCreateCost={createCost}
+        onOpenCost={openCost}
+        onRemoveCost={deleteCost}
       />
     </main>
   )

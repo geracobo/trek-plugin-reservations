@@ -1,6 +1,12 @@
 // Built plugin entry — keep composition here; route logic lives beside it.
 const { definePlugin } = require('trek-plugin-sdk')
-const { reservationsHandler, saveReservationHandler, deleteReservationHandler } = require('./reservations')
+const {
+  reservationsHandler,
+  saveReservationHandler,
+  deleteReservationHandler,
+  saveCostHandler,
+  deleteCostHandler,
+} = require('./reservations')
 const { mapLocationsHandler } = require('./map-locations')
 const { tripPlacesSearchHandler } = require('./trip-places')
 
@@ -12,6 +18,8 @@ module.exports = definePlugin({
     { method: 'GET', path: '/reservations', auth: true, handler: reservationsHandler },
     { method: 'POST', path: '/reservations/save', auth: true, handler: saveReservationHandler },
     { method: 'DELETE', path: '/reservations', auth: true, handler: deleteReservationHandler },
+    { method: 'POST', path: '/costs/save', auth: true, handler: saveCostHandler },
+    { method: 'DELETE', path: '/costs', auth: true, handler: deleteCostHandler },
     { method: 'POST', path: '/map-locations', auth: true, handler: mapLocationsHandler },
     { method: 'GET', path: '/trip-places', auth: true, handler: tripPlacesSearchHandler },
   ],

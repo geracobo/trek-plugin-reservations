@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { Accommodation, Day, Place, Reservation, ReservationFile } from '../types'
+import type { Accommodation, Cost, Day, Place, Reservation, ReservationFile } from '../types'
 import { getType } from '../model'
 import Modal from '../../trek-ui/Modal'
 import { reservationFormKind, type ReservationDraft, type ReservationFormProps } from './types'
@@ -11,6 +11,7 @@ import { SingleDateBookingForm } from './forms/SingleDateBookingForm'
 import { MultiDateBookingForm } from './forms/MultiDateBookingForm'
 import { ReservationTypeSelector } from './ReservationTypeSelector'
 import type { ReservationTypeCategory } from './ReservationTypeSelector'
+import { ReservationCostsSection } from './ReservationCostsSection'
 
 interface ReservationEditorProps extends ReservationFormProps {
   open: boolean
@@ -18,6 +19,10 @@ interface ReservationEditorProps extends ReservationFormProps {
   startingCategory?: ReservationTypeCategory
   onClose: () => void
   onSaved: (reservation: Reservation) => void
+  costs: Cost[]
+  onCreateCost: (reservation: Reservation) => Promise<void>
+  onOpenCost: (cost: Cost) => void
+  onRemoveCost: (cost: Cost) => void
 }
 
 export function ReservationEditor({
@@ -32,6 +37,10 @@ export function ReservationEditor({
   startingCategory,
   onClose,
   onSaved,
+  costs,
+  onCreateCost,
+  onOpenCost,
+  onRemoveCost,
 }: ReservationEditorProps) {
   const [type, setType] = useState<string | null>(null)
   const [draft, setDraft] = useState<ReservationDraft | null>(null)
@@ -69,7 +78,7 @@ export function ReservationEditor({
               ? SingleDateBookingForm
               : MultiDateBookingForm
   const title = reservation ? `Edit ${getType(type).label}` : 'New Reservation'
-  const save = async () => {
+  const save = async (createCost: boolean = false) => {
     if (!tripId || !draft || saving) return
     setSaving(true)
     try {
@@ -79,6 +88,7 @@ export function ReservationEditor({
       })
       onSaved(result.reservation)
       window.trek.notify('success', reservation ? 'Reservation updated' : 'Reservation added')
+      if (createCost) await onCreateCost(result.reservation)
       onClose()
     } catch (error) {
       window.trek.notify('error', error instanceof Error ? error.message : 'Unable to save reservation')
@@ -101,7 +111,7 @@ export function ReservationEditor({
           <button
             type="button"
             disabled={!draft || saving || !draft.title.trim() || type === 'transit'}
-            onClick={save}
+            onClick={() => save()}
             className="trek-btn trek-btn--primary px-5 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? 'Saving…' : reservation ? 'Update' : 'Add'}
@@ -127,6 +137,17 @@ export function ReservationEditor({
           <Form key={kind} {...props} />
         ) : (
           <p className="m-0 text-sm text-content-muted">Choose a reservation type to continue.</p>
+        )}
+        {type && (
+          <div className="mt-5 border-t border-edge-faint pt-4">
+            <ReservationCostsSection
+              costs={reservation ? costs.filter((cost) => Number(cost.reservation_id) === reservation.id) : []}
+              currency={undefined}
+              onCreate={() => (reservation ? onCreateCost(reservation) : save(true))}
+              onOpen={onOpenCost}
+              onRemove={onRemoveCost}
+            />
+          </div>
         )}
       </div>
     </Modal>

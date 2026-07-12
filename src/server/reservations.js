@@ -37,17 +37,19 @@ async function reservationsHandler(req, ctx) {
     const trip = await ctx.trips.getById(tripId)
     if (!trip) return json(404, { error: 'trip not found' })
     const reservations = await ctx.trips.getReservations(tripId)
-    const [placesResult, daysResult, accommodationsResult, filesResult] = await Promise.allSettled([
+    const [placesResult, daysResult, accommodationsResult, filesResult, costsResult] = await Promise.allSettled([
       ctx.trips.getPlaces(tripId),
       ctx.trips.getDays(tripId),
       ctx.trips.getAccommodations(tripId),
       ctx.files.list(tripId),
+      ctx.costs.getByTrip(tripId),
     ])
     const supplemental = [
       ['places', placesResult],
       ['days', daysResult],
       ['accommodations', accommodationsResult],
       ['files', filesResult],
+      ['costs', costsResult],
     ]
     const unavailable = supplemental
       .filter(([, result]) => result.status === 'rejected')
@@ -64,6 +66,7 @@ async function reservationsHandler(req, ctx) {
       days: values(daysResult),
       accommodations: values(accommodationsResult),
       files,
+      costs: values(costsResult),
     })
   } catch (error) {
     const message = error && error.message ? error.message : String(error)
@@ -135,4 +138,46 @@ async function deleteReservationHandler(req, ctx) {
   }
 }
 
-module.exports = { reservationsHandler, saveReservationHandler, deleteReservationHandler }
+async function saveCostHandler(req, ctx) {
+  const body = req.body && typeof req.body === 'object' ? req.body : {}
+  const tripId = Number(body.tripId)
+  const costId = body.costId == null ? null : Number(body.costId)
+  const input = body.input && typeof body.input === 'object' ? body.input : null
+  if (!Number.isInteger(tripId) || tripId <= 0 || !input || typeof input.name !== 'string' || !input.name.trim())
+    return json(400, { error: 'tripId and a cost name are required' })
+  if (costId !== null && (!Number.isInteger(costId) || costId <= 0)) return json(400, { error: 'costId is invalid' })
+  try {
+    if (!(await ctx.trips.getById(tripId))) return json(404, { error: 'trip not found' })
+    const cost = costId
+      ? await ctx.costs.update(tripId, costId, { ...input, name: input.name.trim() })
+      : await ctx.costs.create(tripId, { ...input, name: input.name.trim() })
+    return json(200, { cost })
+  } catch (error) {
+    ctx.log.error(`failed to save cost for trip ${tripId}: ${error?.message || String(error)}`)
+    return json(500, { error: 'Unable to save cost' })
+  }
+}
+
+async function deleteCostHandler(req, ctx) {
+  const body = req.body && typeof req.body === 'object' ? req.body : {}
+  const tripId = Number(body.tripId)
+  const costId = Number(body.costId)
+  if (!Number.isInteger(tripId) || tripId <= 0 || !Number.isInteger(costId) || costId <= 0)
+    return json(400, { error: 'tripId and costId are required' })
+  try {
+    if (!(await ctx.trips.getById(tripId))) return json(404, { error: 'trip not found' })
+    await ctx.costs.delete(tripId, costId)
+    return json(200, { deleted: true })
+  } catch (error) {
+    ctx.log.error(`failed to delete cost ${costId}: ${error?.message || String(error)}`)
+    return json(500, { error: 'Unable to delete cost' })
+  }
+}
+
+module.exports = {
+  reservationsHandler,
+  saveReservationHandler,
+  deleteReservationHandler,
+  saveCostHandler,
+  deleteCostHandler,
+}
