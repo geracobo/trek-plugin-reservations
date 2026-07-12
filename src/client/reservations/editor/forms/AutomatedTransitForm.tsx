@@ -1,9 +1,11 @@
+import { useEffect } from 'react'
 import { TramFront } from 'lucide-react'
 import type { ReservationFormProps } from '../types'
 import { reservationRoute, reservationTitle } from '../../model'
 
-export function AutomatedTransitForm({ reservation }: ReservationFormProps) {
+export function AutomatedTransitForm({ reservation, onDraftChange }: ReservationFormProps) {
   const route = reservation ? reservationRoute(reservation) : []
+  useEffect(() => onDraftChange?.(null), [onDraftChange])
   return (
     <div className="flex flex-col gap-4">
       <div className="rounded-xl border border-[rgba(124,58,237,0.25)] bg-[rgba(124,58,237,0.08)] p-4 text-content">

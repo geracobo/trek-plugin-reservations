@@ -1,4 +1,4 @@
-import { MapPin, Plane } from 'lucide-react'
+import { MapPin, Plane, X } from 'lucide-react'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { inputClass } from './FormFields'
 
@@ -7,6 +7,8 @@ export interface PlaceInputSearchResult {
   google_place_id?: string
   name: string
   address: string
+  lat?: number | null
+  lng?: number | null
   source?: 'google' | 'openstreetmap' | 'trip'
 }
 
@@ -14,6 +16,8 @@ interface TripPlace {
   id: number
   name?: string
   address?: string
+  lat?: number | null
+  lng?: number | null
 }
 
 export interface WorldPlaceLookup {
@@ -41,6 +45,10 @@ interface PlaceInputSearchProps {
   trekPlaces?: TrekPlaceLookup | false
   places?: TripPlace[]
   onPick?: (place: PlaceInputSearchResult) => void
+  /** A structured location has been picked, so show TREK's clear affordance. */
+  selected?: boolean
+  /** Clears the structured selection; typing then continues as free text. */
+  onClear?: () => void
 }
 
 export function PlaceInputSearch({
@@ -54,6 +62,8 @@ export function PlaceInputSearch({
   trekPlaces = {},
   places = [],
   onPick,
+  selected = false,
+  onClear,
 }: PlaceInputSearchProps) {
   const [remoteResults, setRemoteResults] = useState<PlaceInputSearchResult[]>([])
   const [open, setOpen] = useState(false)
@@ -74,6 +84,8 @@ export function PlaceInputSearch({
             osm_id: `trip:${place.id}`,
             name: place.name || place.address || `Place ${place.id}`,
             address: place.address || '',
+            lat: place.lat ?? null,
+            lng: place.lng ?? null,
             source: 'trip',
           }))
       : []
@@ -158,19 +170,49 @@ export function PlaceInputSearch({
 
   return (
     <div ref={wrapperRef} className="relative">
+      {world !== false && world.type === 'airport' ? (
+        <Plane
+          className="pointer-events-none absolute top-1/2 left-3 z-10 -translate-y-1/2 text-content-faint"
+          size={14}
+        />
+      ) : (
+        <MapPin
+          className="pointer-events-none absolute top-1/2 left-3 z-10 -translate-y-1/2 text-content-faint"
+          size={14}
+        />
+      )}
       <input
         className={inputClass}
+        style={{ paddingLeft: 34, paddingRight: selected ? 34 : undefined }}
         value={value}
         placeholder={placeholder}
         autoComplete="off"
         onChange={(event) => {
-          onChange(event.target.value)
+          const insertedText = (event.nativeEvent as InputEvent).data
+          const nextValue = selected ? insertedText || '' : event.target.value
+          if (selected) onClear?.()
+          onChange(nextValue)
           setOpen(true)
-          search(event.target.value)
+          search(nextValue)
         }}
         onFocus={() => setOpen(true)}
         onKeyDown={onKeyDown}
       />
+      {selected && (
+        <button
+          type="button"
+          onClick={() => {
+            onClear?.()
+            onChange('')
+            setOpen(false)
+            setRemoteResults([])
+          }}
+          className="absolute top-1/2 right-2 z-10 flex -translate-y-1/2 border-0 bg-transparent p-0.5 text-content-faint hover:text-content"
+          aria-label="Clear"
+        >
+          <X size={14} />
+        </button>
+      )}
       {open && (loading || results.length > 0) && (
         <div className="absolute top-[calc(100%+4px)] right-0 left-0 z-50 max-h-64 overflow-y-auto rounded-lg border border-edge bg-surface-card shadow-lg">
           {loading && results.length === 0 && (

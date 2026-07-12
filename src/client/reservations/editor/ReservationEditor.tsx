@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import type { Accommodation, Day, Place, Reservation, ReservationFile } from '../types'
 import { getType } from '../model'
 import Modal from '../../trek-ui/Modal'
-import { reservationFormKind, type ReservationFormProps } from './types'
-import { MultiLegTransportForm } from './forms/MultiEndpointTransportForm'
+import { reservationFormKind, type ReservationDraft, type ReservationFormProps } from './types'
+import { MultiEndpointTransportForm } from './forms/MultiEndpointTransportForm'
 import { PointToPointTransportForm } from './forms/PointToPointTransportForm'
 import { AutomatedTransitForm } from './forms/AutomatedTransitForm'
 import { AccommodationForm } from './forms/AccommodationForm'
@@ -17,6 +17,7 @@ interface ReservationEditorProps extends ReservationFormProps {
   startingType?: string
   startingCategory?: ReservationTypeCategory
   onClose: () => void
+  onSaved: (reservation: Reservation) => void
 }
 
 export function ReservationEditor({
@@ -30,23 +31,34 @@ export function ReservationEditor({
   startingType,
   startingCategory,
   onClose,
+  onSaved,
 }: ReservationEditorProps) {
   const [type, setType] = useState<string | null>(null)
+  const [draft, setDraft] = useState<ReservationDraft | null>(null)
+  const [saving, setSaving] = useState(false)
   useEffect(() => {
-    if (open) setType(reservation?.type || startingType || null)
+    if (open) {
+      setType(reservation?.type || startingType || null)
+      setDraft(null)
+    }
   }, [open, reservation, startingType, startingCategory])
   const props = {
     tripId,
-    reservation: reservation ? { ...reservation, type: type || reservation.type } : null,
+    type: type || reservation?.type || 'other',
+    // Forms use the explicit `type` prop for their selected behavior. Keep the
+    // reservation reference stable so a draft update does not re-hydrate and
+    // reset the form on every keystroke.
+    reservation,
     days,
     places,
     accommodations,
     files,
+    onDraftChange: setDraft,
   }
   const kind = reservationFormKind(type)
   const Form =
-    kind === 'multi-leg-transport'
-      ? MultiLegTransportForm
+    kind === 'multi-endpoint-transport'
+      ? MultiEndpointTransportForm
       : kind === 'point-to-point-transport'
         ? PointToPointTransportForm
         : kind === 'automated-transit'
@@ -57,12 +69,30 @@ export function ReservationEditor({
               ? SingleDateBookingForm
               : MultiDateBookingForm
   const title = reservation ? `Edit ${getType(type).label}` : 'New Reservation'
+  const save = async () => {
+    if (!tripId || !draft || saving) return
+    setSaving(true)
+    try {
+      const result = await window.trek.invoke<{ reservation: Reservation }>('/reservations/save', {
+        method: 'POST',
+        body: { tripId, reservationId: reservation?.id, input: draft.input, accommodation: draft.accommodation },
+      })
+      onSaved(result.reservation)
+      window.trek.notify('success', reservation ? 'Reservation updated' : 'Reservation added')
+      onClose()
+    } catch (error) {
+      window.trek.notify('error', error instanceof Error ? error.message : 'Unable to save reservation')
+    } finally {
+      setSaving(false)
+    }
+  }
   return (
     <Modal
       isOpen={open}
       onClose={onClose}
       title={title}
       size="2xl"
+      contentClassName="sm:h-[calc(100dvh-90px)]"
       footer={
         <div className="flex justify-end gap-2">
           <button type="button" onClick={onClose} className="trek-btn trek-btn--secondary px-4 py-2 text-xs">
@@ -70,32 +100,35 @@ export function ReservationEditor({
           </button>
           <button
             type="button"
-            disabled
-            className="trek-btn trek-btn--primary cursor-not-allowed px-5 py-2 text-xs opacity-50"
+            disabled={!draft || saving || !draft.title.trim() || type === 'transit'}
+            onClick={save}
+            className="trek-btn trek-btn--primary px-5 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {reservation ? 'Update' : 'Add'}
+            {saving ? 'Saving…' : reservation ? 'Update' : 'Add'}
           </button>
         </div>
       }
     >
-      <div className="mb-5">
-        <span className="mb-[5px] block text-[11px] font-semibold uppercase tracking-[0.03em] text-content-faint">
-          Reservation type
-        </span>
-        <ReservationTypeSelector
-          key={`${open}-${reservation?.id ?? 'new'}`}
-          value={type || undefined}
-          startingValue={reservation?.type || startingType}
-          startingCategory={reservation ? undefined : startingCategory}
-          showBackButton={!reservation && !startingCategory}
-          onChange={setType}
-        />
+      <div>
+        <div className="mb-5">
+          <span className="mb-[5px] block text-[11px] font-semibold uppercase tracking-[0.03em] text-content-faint">
+            Reservation type
+          </span>
+          <ReservationTypeSelector
+            key={`${open}-${reservation?.id ?? 'new'}`}
+            value={type || undefined}
+            startingValue={reservation?.type || startingType}
+            startingCategory={reservation ? undefined : startingCategory}
+            showBackButton={!reservation && !startingCategory}
+            onChange={setType}
+          />
+        </div>
+        {type ? (
+          <Form key={kind} {...props} />
+        ) : (
+          <p className="m-0 text-sm text-content-muted">Choose a reservation type to continue.</p>
+        )}
       </div>
-      {type ? (
-        <Form key={kind} {...props} />
-      ) : (
-        <p className="m-0 text-sm text-content-muted">Choose a reservation type to continue.</p>
-      )}
     </Modal>
   )
 }

@@ -7,7 +7,15 @@ function dayLabel(day: { title?: string | null; day_number?: number; date?: stri
   return `${day.title || `Day ${day.day_number || ''}`.trim()}${day.date ? ` · ${new Date(`${day.date}T00:00:00Z`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' })}` : ''}`
 }
 
-export function AccommodationForm({ tripId, reservation, days, places, accommodations }: ReservationFormProps) {
+export function AccommodationForm({
+  tripId,
+  type,
+  reservation,
+  days,
+  places,
+  accommodations,
+  onDraftChange,
+}: ReservationFormProps) {
   const [draft, setDraft] = useState({
     title: '',
     placeId: '',
@@ -43,6 +51,36 @@ export function AccommodationForm({ tripId, reservation, days, places, accommoda
     })
   }, [reservation, accommodations])
   const set = (key: keyof typeof draft, value: string) => setDraft((current) => ({ ...current, [key]: value }))
+  useEffect(() => {
+    const existing = reservation?.accommodation_id
+      ? accommodations.find((item) => item.id === reservation.accommodation_id)
+      : undefined
+    onDraftChange?.({
+      title: draft.title,
+      input: {
+        type,
+        title: draft.title,
+        status: draft.status,
+        location: draft.address,
+        confirmation_number: draft.code,
+        url: draft.url,
+        notes: draft.notes,
+        reservation_time: null,
+        reservation_end_time: null,
+        endpoints: [],
+      },
+      accommodation: {
+        id: existing?.id,
+        place_id: draft.placeId ? Number(draft.placeId) : null,
+        start_day_id: draft.startDay ? Number(draft.startDay) : null,
+        end_day_id: draft.endDay ? Number(draft.endDay) : null,
+        check_in: draft.checkIn || null,
+        check_in_end: draft.checkInUntil || null,
+        check_out: draft.checkOut || null,
+        confirmation: draft.code || null,
+      },
+    })
+  }, [accommodations, draft, onDraftChange, reservation?.accommodation_id, type])
   return (
     <div className="flex flex-col gap-3.5">
       <Field label="Title *">
@@ -51,7 +89,7 @@ export function AccommodationForm({ tripId, reservation, days, places, accommoda
           required
           value={draft.title}
           onChange={(event) => set('title', event.target.value)}
-          placeholder="Accommodation name"
+          placeholder="e.g. Lufthansa LH123, Hotel Adlon, ..."
         />
       </Field>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -106,6 +144,7 @@ export function AccommodationForm({ tripId, reservation, days, places, accommoda
           tripId={tripId}
           places={places}
           value={draft.address}
+          placeholder="Address, Airport, Hotel..."
           onChange={(value) => set('address', value)}
         />
       </Field>
@@ -137,7 +176,12 @@ export function AccommodationForm({ tripId, reservation, days, places, accommoda
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Confirmation code">
-          <input className={inputClass} value={draft.code} onChange={(event) => set('code', event.target.value)} />
+          <input
+            className={inputClass}
+            value={draft.code}
+            onChange={(event) => set('code', event.target.value)}
+            placeholder="e.g. ABC12345"
+          />
         </Field>
         <Field label="Status">
           <select
@@ -157,7 +201,7 @@ export function AccommodationForm({ tripId, reservation, days, places, accommoda
           type="url"
           value={draft.url}
           onChange={(event) => set('url', event.target.value)}
-          placeholder="https://"
+          placeholder="https://..."
         />
       </Field>
       <Field label="Notes">
@@ -166,6 +210,7 @@ export function AccommodationForm({ tripId, reservation, days, places, accommoda
           rows={2}
           value={draft.notes}
           onChange={(event) => set('notes', event.target.value)}
+          placeholder="Additional notes..."
         />
       </Field>
     </div>

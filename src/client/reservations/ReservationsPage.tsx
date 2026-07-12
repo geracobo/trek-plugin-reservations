@@ -210,6 +210,19 @@ export function ReservationsPage() {
     setEditorSession((session) => session + 1)
     setDialogOpen(true)
   }
+  const applySavedReservation = (saved: Reservation) => {
+    setPageState((current) => {
+      const exists = current.reservations.some((reservation) => reservation.id === saved.id)
+      return {
+        ...current,
+        reservations: exists
+          ? current.reservations.map((reservation) =>
+              reservation.id === saved.id ? { ...reservation, ...saved } : reservation,
+            )
+          : [...current.reservations, saved],
+      }
+    })
+  }
 
   const hasActiveFilters = search.trim() || selectedTypes.size > 0 || statusFilter !== 'all'
 
@@ -289,6 +302,7 @@ export function ReservationsPage() {
         accommodations={pageState.accommodations}
         files={pageState.files}
         onClose={() => setDialogOpen(false)}
+        onSaved={applySavedReservation}
       />
     </main>
   )

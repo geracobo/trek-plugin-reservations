@@ -19,6 +19,7 @@ interface ModalProps {
   size?: string
   footer?: React.ReactNode
   hideCloseButton?: boolean
+  contentClassName?: string
 }
 
 // Copied from TREK's shared Modal. Keep changes here aligned with the host
@@ -31,6 +32,7 @@ export default function Modal({
   size = 'md',
   footer,
   hideCloseButton = false,
+  contentClassName = '',
 }: ModalProps) {
   const handleEsc = useCallback(
     (event: KeyboardEvent) => {
@@ -67,7 +69,7 @@ export default function Modal({
       }}
     >
       <div
-        className={`trek-modal-enter flex max-h-[calc(100dvh-var(--bottom-nav-h)-90px)] w-full flex-col overflow-hidden rounded-2xl bg-surface-card shadow-2xl sm:max-h-[calc(100dvh-90px)] ${sizeClasses[size] || sizeClasses.md}`}
+        className={`trek-modal-enter flex max-h-[calc(100dvh-var(--bottom-nav-h)-90px)] w-full flex-col overflow-hidden rounded-2xl bg-surface-card shadow-2xl sm:max-h-[calc(100dvh-90px)] ${sizeClasses[size] || sizeClasses.md} ${contentClassName}`}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex shrink-0 items-center justify-between border-b border-edge-secondary p-6">

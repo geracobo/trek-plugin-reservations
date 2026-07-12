@@ -4,7 +4,14 @@ import type { ReservationFormProps } from '../types'
 import { Field, inputClass } from '../FormFields'
 import { PlaceInputSearch } from '../PlaceInputSearch'
 
-export function MultiDateBookingForm({ tripId, reservation, places, files }: ReservationFormProps) {
+export function MultiDateBookingForm({
+  tripId,
+  type,
+  reservation,
+  places,
+  files,
+  onDraftChange,
+}: ReservationFormProps) {
   const [draft, setDraft] = useState({
     title: '',
     startDate: '',
@@ -36,6 +43,25 @@ export function MultiDateBookingForm({ tripId, reservation, places, files }: Res
     })
   }, [reservation])
   const set = (key: keyof typeof draft, value: string) => setDraft((current) => ({ ...current, [key]: value }))
+  useEffect(() => {
+    const dateTime = (date: string, time: string) => (date ? `${date}${time ? `T${time}` : ''}` : null)
+    onDraftChange?.({
+      title: draft.title,
+      input: {
+        type,
+        title: draft.title,
+        status: draft.status,
+        place_id: draft.placeId || null,
+        location: draft.location,
+        confirmation_number: draft.code,
+        url: draft.url,
+        notes: draft.notes,
+        reservation_time: dateTime(draft.startDate, draft.startTime),
+        reservation_end_time: dateTime(draft.endDate, draft.endTime),
+        endpoints: [],
+      },
+    })
+  }, [draft, onDraftChange, type])
   const attached = reservation
     ? files.filter(
         (file) => file.reservation_id === reservation.id || file.linked_reservation_ids?.includes(reservation.id),
@@ -49,7 +75,7 @@ export function MultiDateBookingForm({ tripId, reservation, places, files }: Res
           required
           value={draft.title}
           onChange={(event) => set('title', event.target.value)}
-          placeholder="Reservation title"
+          placeholder="e.g. Lufthansa LH123, Hotel Adlon, ..."
         />
       </Field>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -106,12 +132,18 @@ export function MultiDateBookingForm({ tripId, reservation, places, files }: Res
           tripId={tripId}
           places={places}
           value={draft.location}
+          placeholder="Address, Airport, Hotel..."
           onChange={(value) => set('location', value)}
         />
       </Field>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Confirmation code">
-          <input className={inputClass} value={draft.code} onChange={(event) => set('code', event.target.value)} />
+          <input
+            className={inputClass}
+            value={draft.code}
+            onChange={(event) => set('code', event.target.value)}
+            placeholder="e.g. ABC12345"
+          />
         </Field>
         <Field label="Status">
           <select
@@ -137,7 +169,7 @@ export function MultiDateBookingForm({ tripId, reservation, places, files }: Res
             type="url"
             value={draft.url}
             onChange={(event) => set('url', event.target.value)}
-            placeholder="https://"
+            placeholder="https://..."
           />
         </div>
       </Field>
@@ -147,6 +179,7 @@ export function MultiDateBookingForm({ tripId, reservation, places, files }: Res
           rows={2}
           value={draft.notes}
           onChange={(event) => set('notes', event.target.value)}
+          placeholder="Additional notes..."
         />
       </Field>
       <Field label="Files">

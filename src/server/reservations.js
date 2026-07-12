@@ -72,4 +72,50 @@ async function reservationsHandler(req, ctx) {
   }
 }
 
-module.exports = { reservationsHandler }
+async function saveReservationHandler(req, ctx) {
+  const body = req.body && typeof req.body === 'object' ? req.body : {}
+  const tripId = Number(body.tripId)
+  const reservationId = body.reservationId == null ? null : Number(body.reservationId)
+  const input = body.input && typeof body.input === 'object' ? body.input : null
+  const accommodation = body.accommodation && typeof body.accommodation === 'object' ? body.accommodation : null
+  if (!Number.isInteger(tripId) || tripId <= 0 || !input || typeof input.title !== 'string' || !input.title.trim())
+    return json(400, { error: 'tripId and a reservation title are required' })
+  if (reservationId !== null && (!Number.isInteger(reservationId) || reservationId <= 0))
+    return json(400, { error: 'reservationId is invalid' })
+  try {
+    if (!(await ctx.trips.getById(tripId))) return json(404, { error: 'trip not found' })
+    const payload = { ...input, title: input.title.trim() }
+    if (accommodation) {
+      const fields = {
+        place_id: Number(accommodation.place_id),
+        start_day_id: Number(accommodation.start_day_id),
+        end_day_id: Number(accommodation.end_day_id),
+        check_in: accommodation.check_in || null,
+        check_in_end: accommodation.check_in_end || null,
+        check_out: accommodation.check_out || null,
+        confirmation: accommodation.confirmation || null,
+      }
+      if (
+        Number.isInteger(fields.place_id) &&
+        Number.isInteger(fields.start_day_id) &&
+        Number.isInteger(fields.end_day_id)
+      ) {
+        const savedAccommodation = accommodation.id
+          ? await ctx.accommodations.update(tripId, Number(accommodation.id), fields)
+          : await ctx.accommodations.create(tripId, fields)
+        if (savedAccommodation && typeof savedAccommodation === 'object' && savedAccommodation.id != null)
+          payload.accommodation_id = savedAccommodation.id
+      }
+    }
+    const saved = reservationId
+      ? await ctx.reservations.update(tripId, reservationId, payload)
+      : await ctx.reservations.create(tripId, payload)
+    return json(200, { reservation: saved })
+  } catch (error) {
+    const message = error && error.message ? error.message : String(error)
+    ctx.log.error(`failed to save reservation for trip ${tripId}: ${message}`)
+    return json(500, { error: 'Unable to save reservation' })
+  }
+}
+
+module.exports = { reservationsHandler, saveReservationHandler }

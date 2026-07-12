@@ -4,7 +4,7 @@ import type { ReservationFormProps } from '../types'
 import { Field, inputClass } from '../FormFields'
 import { PlaceInputSearch } from '../PlaceInputSearch'
 
-export function SingleDateBookingForm({ tripId, reservation, places }: ReservationFormProps) {
+export function SingleDateBookingForm({ tripId, type, reservation, places, onDraftChange }: ReservationFormProps) {
   const [draft, setDraft] = useState({
     title: '',
     date: '',
@@ -31,6 +31,24 @@ export function SingleDateBookingForm({ tripId, reservation, places }: Reservati
     })
   }, [reservation])
   const set = (key: keyof typeof draft, value: string) => setDraft((current) => ({ ...current, [key]: value }))
+  useEffect(() => {
+    onDraftChange?.({
+      title: draft.title,
+      input: {
+        type,
+        title: draft.title,
+        status: draft.status,
+        place_id: draft.placeId || null,
+        location: draft.location,
+        confirmation_number: draft.code,
+        url: draft.url,
+        notes: draft.notes,
+        reservation_time: draft.date ? `${draft.date}${draft.time ? `T${draft.time}` : ''}` : null,
+        reservation_end_time: null,
+        endpoints: [],
+      },
+    })
+  }, [draft, onDraftChange, type])
   return (
     <div className="flex flex-col gap-3.5">
       <Field label="Title *">
@@ -39,7 +57,7 @@ export function SingleDateBookingForm({ tripId, reservation, places }: Reservati
           required
           value={draft.title}
           onChange={(event) => set('title', event.target.value)}
-          placeholder="Restaurant reservation"
+          placeholder="e.g. Lufthansa LH123, Hotel Adlon, ..."
         />
       </Field>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -80,12 +98,18 @@ export function SingleDateBookingForm({ tripId, reservation, places }: Reservati
           tripId={tripId}
           places={places}
           value={draft.location}
+          placeholder="Address, Airport, Hotel..."
           onChange={(value) => set('location', value)}
         />
       </Field>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Confirmation code">
-          <input className={inputClass} value={draft.code} onChange={(event) => set('code', event.target.value)} />
+          <input
+            className={inputClass}
+            value={draft.code}
+            onChange={(event) => set('code', event.target.value)}
+            placeholder="e.g. ABC12345"
+          />
         </Field>
         <Field label="Status">
           <select
@@ -111,7 +135,7 @@ export function SingleDateBookingForm({ tripId, reservation, places }: Reservati
             type="url"
             value={draft.url}
             onChange={(event) => set('url', event.target.value)}
-            placeholder="https://"
+            placeholder="https://..."
           />
         </div>
       </Field>
@@ -121,6 +145,7 @@ export function SingleDateBookingForm({ tripId, reservation, places }: Reservati
           rows={2}
           value={draft.notes}
           onChange={(event) => set('notes', event.target.value)}
+          placeholder="Additional notes..."
         />
       </Field>
     </div>
