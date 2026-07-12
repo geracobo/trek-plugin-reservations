@@ -21,6 +21,7 @@ interface ReservationEditorProps extends ReservationFormProps {
 
 export function ReservationEditor({
   open,
+  tripId,
   reservation,
   days,
   places,
@@ -35,6 +36,7 @@ export function ReservationEditor({
     if (open) setType(reservation?.type || startingType || null)
   }, [open, reservation, startingType, startingCategory])
   const props = {
+    tripId,
     reservation: reservation ? { ...reservation, type: type || reservation.type } : null,
     days,
     places,

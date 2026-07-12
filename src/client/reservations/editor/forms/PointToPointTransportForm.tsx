@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { ReservationFormProps } from '../types'
 import { Field, inputClass } from '../FormFields'
+import { PlaceInputSearch } from '../PlaceInputSearch'
 import { reservationRoute } from '../../model'
 
-export function PointToPointTransportForm({ reservation }: ReservationFormProps) {
+export function PointToPointTransportForm({ tripId, reservation, places }: ReservationFormProps) {
   const [draft, setDraft] = useState({
     title: '',
     from: '',
@@ -46,10 +47,22 @@ export function PointToPointTransportForm({ reservation }: ReservationFormProps)
       </Field>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="From">
-          <input className={inputClass} value={draft.from} onChange={(event) => set('from', event.target.value)} />
+          <PlaceInputSearch
+            tripId={tripId}
+            places={places}
+            selectedValue="name"
+            value={draft.from}
+            onChange={(value) => set('from', value)}
+          />
         </Field>
         <Field label="To">
-          <input className={inputClass} value={draft.to} onChange={(event) => set('to', event.target.value)} />
+          <PlaceInputSearch
+            tripId={tripId}
+            places={places}
+            selectedValue="name"
+            value={draft.to}
+            onChange={(value) => set('to', value)}
+          />
         </Field>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

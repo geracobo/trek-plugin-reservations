@@ -276,6 +276,7 @@ export function ReservationsPage() {
       <ReservationEditor
         key={editorSession}
         open={dialogOpen}
+        tripId={pageState.tripId}
         reservation={editingReservation}
         startingCategory={
           editingReservation

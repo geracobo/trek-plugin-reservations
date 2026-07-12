@@ -32,6 +32,7 @@ export interface Trip {
 export interface Place {
   id: number
   name?: string
+  address?: string | null
   [key: string]: unknown
 }
 

@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import type { ReservationFormProps } from '../types'
 import { Field, inputClass } from '../FormFields'
 import { normalizeMetadata, reservationRoute } from '../../model'
+import { PlaceInputSearch, type PlaceInputSearchResult } from '../PlaceInputSearch'
 
-export function MultiLegTransportForm({ reservation }: ReservationFormProps) {
+export function MultiLegTransportForm({ tripId, reservation, places }: ReservationFormProps) {
   const [draft, setDraft] = useState({
     title: '',
     date: '',
@@ -18,6 +19,7 @@ export function MultiLegTransportForm({ reservation }: ReservationFormProps) {
     status: 'pending',
     notes: '',
   })
+  const [stopSearch, setStopSearch] = useState('')
   useEffect(() => {
     const [date = '', startTime = ''] = (reservation?.reservation_time || '').split(/[T ]/)
     const [endDate = '', endTime = ''] = (reservation?.reservation_end_time || '').split(/[T ]/)
@@ -41,6 +43,12 @@ export function MultiLegTransportForm({ reservation }: ReservationFormProps) {
     })
   }, [reservation])
   const set = (key: keyof typeof draft, value: string) => setDraft((current) => ({ ...current, [key]: value }))
+  const addStop = (place: PlaceInputSearchResult) => {
+    const stop = place.name || place.address
+    if (!stop) return
+    set('route', draft.route.trim() ? `${draft.route.trim()}\n${stop}` : stop)
+    setStopSearch('')
+  }
   return (
     <div className="flex flex-col gap-3.5">
       <Field label="Title *">
@@ -62,6 +70,18 @@ export function MultiLegTransportForm({ reservation }: ReservationFormProps) {
         <span className="mt-1 block text-xs text-content-faint">
           Ordered legs will be saved as reservation endpoints.
         </span>
+      </Field>
+      <Field label={reservation?.type === 'flight' ? 'Add airport stop' : 'Add station / stop'}>
+        <PlaceInputSearch
+          tripId={tripId}
+          places={places}
+          world={reservation?.type === 'flight' ? { type: 'airport', strictTypeFiltering: true } : {}}
+          selectedValue="name"
+          value={stopSearch}
+          placeholder={reservation?.type === 'flight' ? 'Search airports' : 'Search stations or places'}
+          onChange={setStopSearch}
+          onPick={addStop}
+        />
       </Field>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Date">

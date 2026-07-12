@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import type { ReservationFormProps } from '../types'
 import { Field, inputClass } from '../FormFields'
+import { PlaceInputSearch } from '../PlaceInputSearch'
 
 function dayLabel(day: { title?: string | null; day_number?: number; date?: string | null }) {
   return `${day.title || `Day ${day.day_number || ''}`.trim()}${day.date ? ` · ${new Date(`${day.date}T00:00:00Z`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' })}` : ''}`
 }
 
-export function AccommodationForm({ reservation, days, places, accommodations }: ReservationFormProps) {
+export function AccommodationForm({ tripId, reservation, days, places, accommodations }: ReservationFormProps) {
   const [draft, setDraft] = useState({
     title: '',
     placeId: '',
@@ -101,7 +102,12 @@ export function AccommodationForm({ reservation, days, places, accommodations }:
         </Field>
       </div>
       <Field label="Location / address">
-        <input className={inputClass} value={draft.address} onChange={(event) => set('address', event.target.value)} />
+        <PlaceInputSearch
+          tripId={tripId}
+          places={places}
+          value={draft.address}
+          onChange={(value) => set('address', value)}
+        />
       </Field>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Field label="Check-in">

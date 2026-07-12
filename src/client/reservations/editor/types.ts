@@ -9,6 +9,7 @@ export type ReservationFormKind =
   | 'multi-date-booking'
 
 export interface ReservationFormProps {
+  tripId: number | null
   reservation: Reservation | null
   days: Day[]
   places: Place[]

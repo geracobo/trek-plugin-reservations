@@ -29,8 +29,7 @@ function copyPluginFiles() {
         const source = path.resolve(file)
         if (fs.existsSync(source)) fs.copyFileSync(source, path.join(buildDir, file))
       }
-      fs.mkdirSync(path.join(buildDir, 'server'), { recursive: true })
-      fs.copyFileSync(path.resolve('src/server/index.js'), path.join(buildDir, 'server', 'index.js'))
+      fs.cpSync(path.resolve('src/server'), path.join(buildDir, 'server'), { recursive: true })
     },
   }
 }

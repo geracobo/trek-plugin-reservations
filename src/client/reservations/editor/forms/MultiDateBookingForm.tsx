@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link2 } from 'lucide-react'
 import type { ReservationFormProps } from '../types'
 import { Field, inputClass } from '../FormFields'
+import { PlaceInputSearch } from '../PlaceInputSearch'
 
-export function MultiDateBookingForm({ reservation, places, files }: ReservationFormProps) {
+export function MultiDateBookingForm({ tripId, reservation, places, files }: ReservationFormProps) {
   const [draft, setDraft] = useState({
     title: '',
     startDate: '',
@@ -101,10 +102,11 @@ export function MultiDateBookingForm({ reservation, places, files }: Reservation
         </select>
       </Field>
       <Field label="Location / address">
-        <input
-          className={inputClass}
+        <PlaceInputSearch
+          tripId={tripId}
+          places={places}
           value={draft.location}
-          onChange={(event) => set('location', event.target.value)}
+          onChange={(value) => set('location', value)}
         />
       </Field>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

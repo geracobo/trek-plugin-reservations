@@ -14,7 +14,20 @@
     "db:read:files",
     "db:write:reservations",
     "db:write:accommodations",
-    "db:write:files"
+    "db:write:files",
+    "http:outbound:nominatim.openstreetmap.org",
+    "http:outbound:places.googleapis.com"
+  ],
+  "egress": ["nominatim.openstreetmap.org", "places.googleapis.com"],
+  "settings": [
+    {
+      "key": "googlePlacesApiKey",
+      "label": "Google Places API key",
+      "input_type": "text",
+      "secret": true,
+      "scope": "instance",
+      "hint": "Optional. Enables Google Places search; OpenStreetMap remains the fallback when it is unset."
+    }
   ],
   "capabilities": {
     "tripPage": {
