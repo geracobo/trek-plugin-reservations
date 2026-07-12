@@ -3,6 +3,8 @@ import { Link2 } from 'lucide-react'
 import type { ReservationFormProps } from '../types'
 import { Field, inputClass } from '../FormFields'
 import { PlaceInputSearch } from '../PlaceInputSearch'
+import { DatePicker } from '../DatePicker'
+import { TimePicker } from '../TimePicker'
 
 export function MultiDateBookingForm({
   tripId,
@@ -80,36 +82,16 @@ export function MultiDateBookingForm({
       </Field>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Date">
-          <input
-            className={inputClass}
-            type="date"
-            value={draft.startDate}
-            onChange={(event) => set('startDate', event.target.value)}
-          />
+          <DatePicker value={draft.startDate} onChange={(value) => set('startDate', value)} />
         </Field>
         <Field label="Start time">
-          <input
-            className={inputClass}
-            type="time"
-            value={draft.startTime}
-            onChange={(event) => set('startTime', event.target.value)}
-          />
+          <TimePicker value={draft.startTime} onChange={(value) => set('startTime', value)} />
         </Field>
         <Field label="End date">
-          <input
-            className={inputClass}
-            type="date"
-            value={draft.endDate}
-            onChange={(event) => set('endDate', event.target.value)}
-          />
+          <DatePicker value={draft.endDate} onChange={(value) => set('endDate', value)} />
         </Field>
         <Field label="End time">
-          <input
-            className={inputClass}
-            type="time"
-            value={draft.endTime}
-            onChange={(event) => set('endTime', event.target.value)}
-          />
+          <TimePicker value={draft.endTime} onChange={(value) => set('endTime', value)} />
         </Field>
       </div>
       <Field label="Link place">

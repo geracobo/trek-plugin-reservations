@@ -2,9 +2,21 @@ import { useEffect, useState } from 'react'
 import type { ReservationFormProps } from '../types'
 import { Field, inputClass } from '../FormFields'
 import { PlaceInputSearch } from '../PlaceInputSearch'
+import { TripDaySelect } from '../TripDaySelect'
+import { TimePicker } from '../TimePicker'
 
 function dayLabel(day: { title?: string | null; day_number?: number; date?: string | null }) {
-  return `${day.title || `Day ${day.day_number || ''}`.trim()}${day.date ? ` · ${new Date(`${day.date}T00:00:00Z`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' })}` : ''}`
+  return day.title || `Day ${day.day_number || ''}`.trim()
+}
+
+function dayBadge(day: { date?: string | null }) {
+  return day.date
+    ? new Date(`${day.date}T00:00:00Z`).toLocaleDateString(undefined, {
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'UTC',
+      })
+    : undefined
 }
 
 export function AccommodationForm({
@@ -109,34 +121,38 @@ export function AccommodationForm({
           </select>
         </Field>
         <Field label="From trip day">
-          <select
-            data-trek-native
-            className={inputClass}
+          <TripDaySelect
             value={draft.startDay}
-            onChange={(event) => set('startDay', event.target.value)}
-          >
-            <option value="">Select day</option>
-            {days.map((day) => (
-              <option key={day.id} value={day.id}>
-                {dayLabel(day)}
-              </option>
-            ))}
-          </select>
+            onChange={(value) =>
+              setDraft((current) => ({
+                ...current,
+                startDay: value,
+                endDay:
+                  days.findIndex((day) => String(day.id) === value) >
+                  days.findIndex((day) => String(day.id) === current.endDay)
+                    ? value
+                    : current.endDay,
+              }))
+            }
+            options={days.map((day) => ({ value: String(day.id), label: dayLabel(day), badge: dayBadge(day) }))}
+          />
         </Field>
         <Field label="To trip day">
-          <select
-            data-trek-native
-            className={inputClass}
+          <TripDaySelect
             value={draft.endDay}
-            onChange={(event) => set('endDay', event.target.value)}
-          >
-            <option value="">Select day</option>
-            {days.map((day) => (
-              <option key={day.id} value={day.id}>
-                {dayLabel(day)}
-              </option>
-            ))}
-          </select>
+            onChange={(value) =>
+              setDraft((current) => ({
+                ...current,
+                startDay:
+                  days.findIndex((day) => String(day.id) === value) <
+                  days.findIndex((day) => String(day.id) === current.startDay)
+                    ? value
+                    : current.startDay,
+                endDay: value,
+              }))
+            }
+            options={days.map((day) => ({ value: String(day.id), label: dayLabel(day), badge: dayBadge(day) }))}
+          />
         </Field>
       </div>
       <Field label="Location / address">
@@ -150,28 +166,13 @@ export function AccommodationForm({
       </Field>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Field label="Check-in">
-          <input
-            className={inputClass}
-            type="time"
-            value={draft.checkIn}
-            onChange={(event) => set('checkIn', event.target.value)}
-          />
+          <TimePicker value={draft.checkIn} onChange={(value) => set('checkIn', value)} />
         </Field>
         <Field label="Check-in until">
-          <input
-            className={inputClass}
-            type="time"
-            value={draft.checkInUntil}
-            onChange={(event) => set('checkInUntil', event.target.value)}
-          />
+          <TimePicker value={draft.checkInUntil} onChange={(value) => set('checkInUntil', value)} />
         </Field>
         <Field label="Check-out">
-          <input
-            className={inputClass}
-            type="time"
-            value={draft.checkOut}
-            onChange={(event) => set('checkOut', event.target.value)}
-          />
+          <TimePicker value={draft.checkOut} onChange={(value) => set('checkOut', value)} />
         </Field>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

@@ -3,6 +3,8 @@ import { Link2 } from 'lucide-react'
 import type { ReservationFormProps } from '../types'
 import { Field, inputClass } from '../FormFields'
 import { PlaceInputSearch } from '../PlaceInputSearch'
+import { DatePicker } from '../DatePicker'
+import { TimePicker } from '../TimePicker'
 
 export function SingleDateBookingForm({ tripId, type, reservation, places, onDraftChange }: ReservationFormProps) {
   const [draft, setDraft] = useState({
@@ -62,20 +64,10 @@ export function SingleDateBookingForm({ tripId, type, reservation, places, onDra
       </Field>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Date">
-          <input
-            className={inputClass}
-            type="date"
-            value={draft.date}
-            onChange={(event) => set('date', event.target.value)}
-          />
+          <DatePicker value={draft.date} onChange={(value) => set('date', value)} />
         </Field>
         <Field label="Time">
-          <input
-            className={inputClass}
-            type="time"
-            value={draft.time}
-            onChange={(event) => set('time', event.target.value)}
-          />
+          <TimePicker value={draft.time} onChange={(value) => set('time', value)} />
         </Field>
       </div>
       <Field label="Link place">

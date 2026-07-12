@@ -4,6 +4,8 @@ import type { ReservationFormProps } from '../types'
 import { Field, inputClass, labelClass } from '../FormFields'
 import { normalizeMetadata } from '../../model'
 import { PlaceInputSearch, type PlaceInputSearchResult } from '../PlaceInputSearch'
+import { TripDaySelect } from '../TripDaySelect'
+import { TimePicker } from '../TimePicker'
 
 interface Waypoint {
   name: string
@@ -178,7 +180,14 @@ export function MultiEndpointTransportForm({ tripId, type, reservation, days, on
     })
   const dayOptions = days.map((day) => ({
     value: String(day.id),
-    label: `${day.title || `Day ${day.day_number || ''}`}${day.date ? ` · ${day.date}` : ''}`,
+    label: day.title || `Day ${day.day_number || ''}`,
+    badge: day.date
+      ? new Date(`${day.date}T00:00:00Z`).toLocaleDateString(undefined, {
+          day: 'numeric',
+          month: 'short',
+          timeZone: 'UTC',
+        })
+      : undefined,
   }))
 
   return (
@@ -235,26 +244,16 @@ export function MultiEndpointTransportForm({ tripId, type, reservation, days, on
                     className={`grid grid-cols-1 gap-3 ${isFlight && waypoint.timezone ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}
                   >
                     <Field label="Arrival day">
-                      <select
-                        data-trek-native
-                        className={inputClass}
+                      <TripDaySelect
                         value={waypoint.arrivalDayId}
-                        onChange={(event) => update(index, { arrivalDayId: event.target.value })}
-                      >
-                        <option value="">Select day</option>
-                        {dayOptions.map((day) => (
-                          <option key={day.value} value={day.value}>
-                            {day.label}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(value) => update(index, { arrivalDayId: value })}
+                        options={dayOptions}
+                      />
                     </Field>
                     <Field label="Arrival time">
-                      <input
-                        className={inputClass}
-                        type="time"
+                      <TimePicker
                         value={waypoint.arrivalTime}
-                        onChange={(event) => update(index, { arrivalTime: event.target.value })}
+                        onChange={(value) => update(index, { arrivalTime: value })}
                       />
                     </Field>
                     {isFlight && waypoint.timezone && (
@@ -272,26 +271,16 @@ export function MultiEndpointTransportForm({ tripId, type, reservation, days, on
                       className={`mt-2 grid grid-cols-1 gap-3 ${isFlight && waypoint.timezone ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}
                     >
                       <Field label="Departure day">
-                        <select
-                          data-trek-native
-                          className={inputClass}
+                        <TripDaySelect
                           value={waypoint.departureDayId}
-                          onChange={(event) => update(index, { departureDayId: event.target.value })}
-                        >
-                          <option value="">Select day</option>
-                          {dayOptions.map((day) => (
-                            <option key={day.value} value={day.value}>
-                              {day.label}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={(value) => update(index, { departureDayId: value })}
+                          options={dayOptions}
+                        />
                       </Field>
                       <Field label="Departure time">
-                        <input
-                          className={inputClass}
-                          type="time"
+                        <TimePicker
                           value={waypoint.departureTime}
-                          onChange={(event) => update(index, { departureTime: event.target.value })}
+                          onChange={(value) => update(index, { departureTime: value })}
                         />
                       </Field>
                       {isFlight && waypoint.timezone && (

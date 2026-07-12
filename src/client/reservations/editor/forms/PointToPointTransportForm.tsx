@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import type { ReservationFormProps } from '../types'
 import { Field, inputClass } from '../FormFields'
 import { PlaceInputSearch, type PlaceInputSearchResult } from '../PlaceInputSearch'
+import { TripDaySelect } from '../TripDaySelect'
+import { TimePicker } from '../TimePicker'
 import { reservationRoute } from '../../model'
 
 export function PointToPointTransportForm({ tripId, type, reservation, days, onDraftChange }: ReservationFormProps) {
@@ -92,7 +94,14 @@ export function PointToPointTransportForm({ tripId, type, reservation, days, onD
   }, [days, draft, onDraftChange, type])
   const dayOptions = days.map((day) => ({
     value: String(day.id),
-    label: `${day.title || `Day ${day.day_number || ''}`}${day.date ? ` · ${day.date}` : ''}`,
+    label: day.title || `Day ${day.day_number || ''}`,
+    badge: day.date
+      ? new Date(`${day.date}T00:00:00Z`).toLocaleDateString(undefined, {
+          day: 'numeric',
+          month: 'short',
+          timeZone: 'UTC',
+        })
+      : undefined,
   }))
   const pickEndpoint = (role: 'from' | 'to', place: PlaceInputSearchResult) => {
     const name = place.name || place.address
@@ -144,50 +153,16 @@ export function PointToPointTransportForm({ tripId, type, reservation, days, onD
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label={type === 'car' ? 'Pickup day' : 'Day'}>
-          <select
-            data-trek-native
-            className={inputClass}
-            value={draft.startDayId}
-            onChange={(event) => set('startDayId', event.target.value)}
-          >
-            <option value="">Select day</option>
-            {dayOptions.map((day) => (
-              <option key={day.value} value={day.value}>
-                {day.label}
-              </option>
-            ))}
-          </select>
+          <TripDaySelect value={draft.startDayId} onChange={(value) => set('startDayId', value)} options={dayOptions} />
         </Field>
         <Field label="Start time">
-          <input
-            className={inputClass}
-            type="time"
-            value={draft.startTime}
-            onChange={(event) => set('startTime', event.target.value)}
-          />
+          <TimePicker value={draft.startTime} onChange={(value) => set('startTime', value)} />
         </Field>
         <Field label={type === 'car' ? 'Return day' : 'End day'}>
-          <select
-            data-trek-native
-            className={inputClass}
-            value={draft.endDayId}
-            onChange={(event) => set('endDayId', event.target.value)}
-          >
-            <option value="">Select day</option>
-            {dayOptions.map((day) => (
-              <option key={day.value} value={day.value}>
-                {day.label}
-              </option>
-            ))}
-          </select>
+          <TripDaySelect value={draft.endDayId} onChange={(value) => set('endDayId', value)} options={dayOptions} />
         </Field>
         <Field label="End time">
-          <input
-            className={inputClass}
-            type="time"
-            value={draft.endTime}
-            onChange={(event) => set('endTime', event.target.value)}
-          />
+          <TimePicker value={draft.endTime} onChange={(value) => set('endTime', value)} />
         </Field>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
