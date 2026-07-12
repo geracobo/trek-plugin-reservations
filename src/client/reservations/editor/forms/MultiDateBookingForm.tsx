@@ -6,14 +6,7 @@ import { PlaceInputSearch } from '../PlaceInputSearch'
 import { DatePicker } from '../DatePicker'
 import { TimePicker } from '../TimePicker'
 
-export function MultiDateBookingForm({
-  tripId,
-  type,
-  reservation,
-  places,
-  files,
-  onDraftChange,
-}: ReservationFormProps) {
+export function MultiDateBookingForm({ tripId, type, reservation, places, onDraftChange }: ReservationFormProps) {
   const [draft, setDraft] = useState({
     title: '',
     startDate: '',
@@ -64,11 +57,6 @@ export function MultiDateBookingForm({
       },
     })
   }, [draft, onDraftChange, type])
-  const attached = reservation
-    ? files.filter(
-        (file) => file.reservation_id === reservation.id || file.linked_reservation_ids?.includes(reservation.id),
-      )
-    : []
   return (
     <div className="flex flex-col gap-3.5">
       <Field label="Title *">
@@ -163,18 +151,6 @@ export function MultiDateBookingForm({
           onChange={(event) => set('notes', event.target.value)}
           placeholder="Additional notes..."
         />
-      </Field>
-      <Field label="Files">
-        <div className="flex flex-col gap-1.5">
-          {attached.map((file) => (
-            <div key={file.id} className="rounded-lg bg-surface-secondary px-2.5 py-1.5 text-xs text-content-muted">
-              {file.original_name || file.filename || 'Unnamed file'}
-            </div>
-          ))}
-          <span className="text-xs text-content-faint">
-            File changes will be available when upload/link actions are connected.
-          </span>
-        </div>
       </Field>
     </div>
   )

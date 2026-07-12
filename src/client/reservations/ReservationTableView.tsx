@@ -1,6 +1,8 @@
-import { FileText, Files, Pencil, Trash2 } from 'lucide-react'
-import type { Reservation } from './types'
+import { Download, FileText, Files, Pencil, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import type { Reservation, ReservationFile } from './types'
 import { getType, reservationRoute, reservationTimeRange, reservationTitle, TRANSPORT_TYPES } from './model'
+import Modal from '../trek-ui/Modal'
 
 export const TABLE_COLUMNS = [
   { key: 'type', label: 'Booking type' },
@@ -56,16 +58,30 @@ function StatusBadge({ reservation }: { reservation: Reservation }) {
   )
 }
 
+function fileName(file: ReservationFile) {
+  return file.original_name || file.filename || file.name || 'Unnamed file'
+}
+
+function downloadFile(file: ReservationFile) {
+  if (typeof file.url !== 'string' || !file.url) {
+    window.trek.notify('error', 'This file is not available for download.')
+    return
+  }
+  window.trek.openExternal(new URL(file.url, window.location.origin).href)
+}
+
 function ReservationTableRow({
   reservation,
   visibleColumns,
   onEdit,
   onDelete,
+  onShowFiles,
 }: {
   reservation: Reservation
   visibleColumns: Set<TableColumnKey>
   onEdit: (reservation: Reservation) => void
   onDelete: (reservation: Reservation) => void
+  onShowFiles: (files: ReservationFile[]) => void
 }) {
   const typeInfo = getType(reservation.type)
   const TypeIcon = typeInfo.Icon
@@ -142,13 +158,19 @@ function ReservationTableRow({
       {visibleColumns.has('files') ? (
         <td className="whitespace-nowrap">
           {reservation.files?.length ? (
-            <span
-              className="inline-flex items-center gap-1.25 text-content-muted"
+            <button
+              type="button"
+              onClick={() =>
+                reservation.files && reservation.files.length === 1
+                  ? downloadFile(reservation.files[0])
+                  : onShowFiles(reservation.files || [])
+              }
+              className="inline-flex cursor-pointer items-center gap-1.25 bg-transparent p-0 text-content-muted hover:text-content"
               title={reservation.files.map((file) => file.original_name || file.filename || 'Unnamed file').join(', ')}
             >
               {reservation.files.length === 1 ? <FileText size={13} /> : <Files size={13} />}
               <span>{reservation.files.length}</span>
-            </span>
+            </button>
           ) : (
             <span className="text-content-faint">—</span>
           )}
@@ -181,29 +203,54 @@ function ReservationTableRow({
 }
 
 export function ReservationTableView({ reservations, visibleColumns, onEdit, onDelete }: ReservationTableViewProps) {
+  const [filesPopup, setFilesPopup] = useState<ReservationFile[] | null>(null)
   return (
-    <div className="trek-card overflow-auto rounded-xl p-0">
-      <table className="w-full min-w-[980px] border-collapse text-[13px] [&_td]:border-b [&_td]:border-edge-faint [&_td]:px-[11px] [&_td]:py-2.5 [&_td]:text-left [&_td]:align-middle [&_th]:sticky [&_th]:top-0 [&_th]:z-1 [&_th]:border-b [&_th]:border-edge-faint [&_th]:bg-surface-secondary [&_th]:px-[11px] [&_th]:py-[9px] [&_th]:text-left [&_th]:text-[10px] [&_th]:font-extrabold [&_th]:uppercase [&_th]:text-content-faint [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-surface-hover">
-        <thead>
-          <tr>
-            {TABLE_COLUMNS.filter((column) => visibleColumns.has(column.key)).map((column) => (
-              <th key={column.key}>{column.label}</th>
+    <>
+      <div className="trek-card overflow-auto rounded-xl p-0">
+        <table className="w-full min-w-[980px] border-collapse text-[13px] [&_td]:border-b [&_td]:border-edge-faint [&_td]:px-[11px] [&_td]:py-2.5 [&_td]:text-left [&_td]:align-middle [&_th]:sticky [&_th]:top-0 [&_th]:z-1 [&_th]:border-b [&_th]:border-edge-faint [&_th]:bg-surface-secondary [&_th]:px-[11px] [&_th]:py-[9px] [&_th]:text-left [&_th]:text-[10px] [&_th]:font-extrabold [&_th]:uppercase [&_th]:text-content-faint [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-surface-hover">
+          <thead>
+            <tr>
+              {TABLE_COLUMNS.filter((column) => visibleColumns.has(column.key)).map((column) => (
+                <th key={column.key}>{column.label}</th>
+              ))}
+              <th className="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reservations.map((reservation) => (
+              <ReservationTableRow
+                key={reservation.id}
+                reservation={reservation}
+                visibleColumns={visibleColumns}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onShowFiles={setFilesPopup}
+              />
             ))}
-            <th className="text-center">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {reservations.map((reservation) => (
-            <ReservationTableRow
-              key={reservation.id}
-              reservation={reservation}
-              visibleColumns={visibleColumns}
-              onEdit={onEdit}
-              onDelete={onDelete}
-            />
+          </tbody>
+        </table>
+      </div>
+      <Modal isOpen={Boolean(filesPopup)} onClose={() => setFilesPopup(null)} title="Attached files" size="sm">
+        <div className="flex flex-col gap-1.5">
+          {filesPopup?.map((file, index) => (
+            <div
+              key={file.id ?? `${fileName(file)}-${index}`}
+              className="flex items-center gap-2 rounded-lg bg-surface-secondary px-2.5 py-[5px]"
+            >
+              <FileText size={12} className="shrink-0 text-content-muted" />
+              <span className="min-w-0 flex-1 truncate text-[12px] text-content-secondary">{fileName(file)}</span>
+              <button
+                type="button"
+                onClick={() => downloadFile(file)}
+                title={`Download ${fileName(file)}`}
+                className="flex shrink-0 cursor-pointer bg-transparent p-0 text-content-faint hover:text-content"
+              >
+                <Download size={12} />
+              </button>
+            </div>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </div>
+      </Modal>
+    </>
   )
 }

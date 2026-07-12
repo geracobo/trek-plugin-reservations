@@ -74,6 +74,14 @@ function reservationSearchText(reservation: Reservation) {
     .toLowerCase()
 }
 
+function updateReservationFiles(
+  reservations: Reservation[],
+  reservationId: number,
+  update: (files: ReservationFile[]) => ReservationFile[],
+) {
+  return reservations.map((item) => (item.id === reservationId ? { ...item, files: update(item.files || []) } : item))
+}
+
 export function ReservationsPage() {
   const [pageState, setPageState] = useState<ReservationsPageState>({
     tripId: null,
@@ -312,6 +320,82 @@ export function ReservationsPage() {
     }
   }
 
+  const fileToPayload = async (file: File) => {
+    const content = await file.arrayBuffer()
+    const bytes = new Uint8Array(content)
+    let binary = ''
+    for (let index = 0; index < bytes.length; index += 0x8000)
+      binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000))
+    return { name: file.name, mimetype: file.type || undefined, content_base64: btoa(binary) }
+  }
+  const uploadFile = async (reservation: Reservation, upload: File) => {
+    if (!pageState.tripId) return
+    try {
+      const result = await window.trek.invoke<{ file: ReservationFile }>('/files/save', {
+        method: 'POST',
+        body: { tripId: pageState.tripId, reservationId: reservation.id, file: await fileToPayload(upload) },
+      })
+      setPageState((current) => ({
+        ...current,
+        files: [...current.files, result.file],
+        reservations: updateReservationFiles(current.reservations, reservation.id, (files) => [...files, result.file]),
+      }))
+      window.trek.notify('success', 'File attached')
+    } catch (error) {
+      window.trek.notify('error', error instanceof Error ? error.message : 'Unable to attach file')
+      throw error
+    }
+  }
+  const linkFile = async (reservation: Reservation, file: ReservationFile) => {
+    if (!pageState.tripId || file.id == null) return
+    try {
+      const result = await window.trek.invoke<{ file: ReservationFile }>('/files/link', {
+        method: 'POST',
+        body: { tripId: pageState.tripId, reservationId: reservation.id, fileId: file.id },
+      })
+      setPageState((current) => ({
+        ...current,
+        files: current.files.map((item) => (item.id === file.id ? result.file : item)),
+        reservations: updateReservationFiles(current.reservations, reservation.id, (files) => [
+          ...files.filter((item) => item.id !== file.id),
+          result.file,
+        ]),
+      }))
+      window.trek.notify('success', 'File linked')
+    } catch (error) {
+      window.trek.notify('error', error instanceof Error ? error.message : 'Unable to link file')
+      throw error
+    }
+  }
+  const removeFile = async (reservation: Reservation, file: ReservationFile) => {
+    if (!pageState.tripId || file.id == null) return
+    const confirmed = await window.trek.confirm({
+      title: 'Detach file',
+      message: `Detach “${file.original_name || file.filename || file.name || 'this file'}” from this reservation?`,
+      confirmLabel: 'Detach',
+      cancelLabel: 'Cancel',
+      danger: true,
+    })
+    if (!confirmed) return
+    try {
+      await window.trek.invoke('/files/link', {
+        method: 'DELETE',
+        body: { tripId: pageState.tripId, reservationId: reservation.id, fileId: file.id },
+      })
+      setPageState((current) => ({
+        ...current,
+        files: current.files.map((item) => (item.id === file.id ? { ...item, reservation_id: null } : item)),
+        reservations: updateReservationFiles(current.reservations, reservation.id, (files) =>
+          files.filter((item) => item.id !== file.id),
+        ),
+      }))
+      window.trek.notify('success', 'File detached')
+    } catch (error) {
+      window.trek.notify('error', error instanceof Error ? error.message : 'Unable to detach file')
+      throw error
+    }
+  }
+
   const hasActiveFilters = search.trim() || selectedTypes.size > 0 || statusFilter !== 'all'
 
   return (
@@ -397,6 +481,9 @@ export function ReservationsPage() {
         onCreateCost={createCost}
         onOpenCost={openCost}
         onRemoveCost={deleteCost}
+        onUploadFile={uploadFile}
+        onLinkFile={linkFile}
+        onRemoveFile={removeFile}
       />
     </main>
   )

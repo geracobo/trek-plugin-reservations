@@ -12,6 +12,7 @@ import { MultiDateBookingForm } from './forms/MultiDateBookingForm'
 import { ReservationTypeSelector } from './ReservationTypeSelector'
 import type { ReservationTypeCategory } from './ReservationTypeSelector'
 import { ReservationCostsSection } from './ReservationCostsSection'
+import { ReservationFilesSection } from './ReservationFilesSection'
 
 interface ReservationEditorProps extends ReservationFormProps {
   open: boolean
@@ -23,6 +24,9 @@ interface ReservationEditorProps extends ReservationFormProps {
   onCreateCost: (reservation: Reservation) => Promise<void>
   onOpenCost: (cost: Cost) => void
   onRemoveCost: (cost: Cost) => void
+  onUploadFile: (reservation: Reservation, file: File) => Promise<void>
+  onLinkFile: (reservation: Reservation, file: ReservationFile) => Promise<void>
+  onRemoveFile: (reservation: Reservation, file: ReservationFile) => Promise<void>
 }
 
 export function ReservationEditor({
@@ -41,14 +45,19 @@ export function ReservationEditor({
   onCreateCost,
   onOpenCost,
   onRemoveCost,
+  onUploadFile,
+  onLinkFile,
+  onRemoveFile,
 }: ReservationEditorProps) {
   const [type, setType] = useState<string | null>(null)
   const [draft, setDraft] = useState<ReservationDraft | null>(null)
   const [saving, setSaving] = useState(false)
+  const [pendingFiles, setPendingFiles] = useState<File[]>([])
   useEffect(() => {
     if (open) {
       setType(reservation?.type || startingType || null)
       setDraft(null)
+      setPendingFiles([])
     }
   }, [open, reservation, startingType, startingCategory])
   const props = {
@@ -88,6 +97,7 @@ export function ReservationEditor({
       })
       onSaved(result.reservation)
       window.trek.notify('success', reservation ? 'Reservation updated' : 'Reservation added')
+      for (const file of pendingFiles) await onUploadFile(result.reservation, file)
       if (createCost) await onCreateCost(result.reservation)
       onClose()
     } catch (error) {
@@ -140,13 +150,37 @@ export function ReservationEditor({
         )}
         {type && (
           <div className="mt-5 border-t border-edge-faint pt-4">
-            <ReservationCostsSection
-              costs={reservation ? costs.filter((cost) => Number(cost.reservation_id) === reservation.id) : []}
-              currency={undefined}
-              onCreate={() => (reservation ? onCreateCost(reservation) : save(true))}
-              onOpen={onOpenCost}
-              onRemove={onRemoveCost}
+            <ReservationFilesSection
+              files={
+                reservation
+                  ? files.filter(
+                      (file) =>
+                        Number(file.reservation_id) === reservation.id ||
+                        file.linked_reservation_ids?.some((id) => Number(id) === reservation.id),
+                    )
+                  : []
+              }
+              allFiles={files}
+              reservationId={reservation?.id ?? null}
+              isSaved={Boolean(reservation)}
+              pendingFiles={pendingFiles}
+              onAddPending={(file) => setPendingFiles((current) => [...current, file])}
+              onRemovePending={(index) =>
+                setPendingFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))
+              }
+              onUpload={(file) => (reservation ? onUploadFile(reservation, file) : Promise.resolve())}
+              onLink={(file) => (reservation ? onLinkFile(reservation, file) : Promise.resolve())}
+              onRemove={(file) => (reservation ? onRemoveFile(reservation, file) : Promise.resolve())}
             />
+            <div className="mt-5 border-t border-edge-faint pt-4">
+              <ReservationCostsSection
+                costs={reservation ? costs.filter((cost) => Number(cost.reservation_id) === reservation.id) : []}
+                currency={undefined}
+                onCreate={() => (reservation ? onCreateCost(reservation) : save(true))}
+                onOpen={onOpenCost}
+                onRemove={onRemoveCost}
+              />
+            </div>
           </div>
         )}
       </div>

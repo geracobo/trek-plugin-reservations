@@ -1,6 +1,16 @@
 // Reservation surface data route and its response enrichment.
 const { json } = require('./utils')
 
+function sdkError(error, fallback) {
+  const message = error?.message || String(error)
+  const status = /^(BAD_PARAMS|VALIDATION|INVALID)/.test(message)
+    ? 400
+    : /^(RESOURCE_FORBIDDEN|FORBIDDEN|UNAUTHORIZED)/.test(message)
+      ? 403
+      : 500
+  return json(status, { error: status === 500 ? fallback : message.replace(/^[A-Z_]+:\s*/, '') })
+}
+
 function enrichReservations(reservations, places, files) {
   const placeById = new Map(
     (Array.isArray(places) ? places : [])
@@ -174,10 +184,95 @@ async function deleteCostHandler(req, ctx) {
   }
 }
 
+async function saveFileHandler(req, ctx) {
+  const body = req.body && typeof req.body === 'object' ? req.body : {}
+  const tripId = Number(body.tripId)
+  const reservationId = Number(body.reservationId)
+  const file = body.file && typeof body.file === 'object' ? body.file : null
+  if (!Number.isInteger(tripId) || tripId <= 0 || !Number.isInteger(reservationId) || reservationId <= 0)
+    return json(400, { error: 'tripId and reservationId are required' })
+  if (!file || typeof file.name !== 'string' || !file.name.trim() || typeof file.content_base64 !== 'string')
+    return json(400, { error: 'A file name and content are required' })
+  try {
+    if (!(await ctx.trips.getById(tripId))) return json(404, { error: 'trip not found' })
+    const saved = await ctx.files.create(tripId, {
+      name: file.name.trim(),
+      content_base64: file.content_base64,
+      mimetype: typeof file.mimetype === 'string' ? file.mimetype : undefined,
+      reservation_id: reservationId,
+    })
+    return json(200, { file: saved })
+  } catch (error) {
+    ctx.log.error(`failed to upload file for reservation ${reservationId}: ${error?.message || String(error)}`)
+    return sdkError(error, 'Unable to upload file')
+  }
+}
+
+async function linkFileHandler(req, ctx) {
+  const body = req.body && typeof req.body === 'object' ? req.body : {}
+  const tripId = Number(body.tripId)
+  const fileId = Number(body.fileId)
+  const reservationId = Number(body.reservationId)
+  if (
+    !Number.isInteger(tripId) ||
+    tripId <= 0 ||
+    !Number.isInteger(fileId) ||
+    fileId <= 0 ||
+    !Number.isInteger(reservationId) ||
+    reservationId <= 0
+  )
+    return json(400, { error: 'tripId, fileId and reservationId are required' })
+  try {
+    if (!(await ctx.trips.getById(tripId))) return json(404, { error: 'trip not found' })
+    await ctx.files.createLink(tripId, fileId, { reservation_id: reservationId })
+    const files = await ctx.files.list(tripId)
+    const file = files.find((item) => Number(item?.id) === fileId)
+    if (!file) return json(404, { error: 'file not found after linking' })
+    return json(200, { file })
+  } catch (error) {
+    ctx.log.error(`failed to link file ${fileId} to reservation ${reservationId}: ${error?.message || String(error)}`)
+    return sdkError(error, 'Unable to link file')
+  }
+}
+
+async function unlinkFileHandler(req, ctx) {
+  const body = req.body && typeof req.body === 'object' ? req.body : {}
+  const tripId = Number(body.tripId)
+  const fileId = Number(body.fileId)
+  const reservationId = Number(body.reservationId)
+  if (
+    !Number.isInteger(tripId) ||
+    tripId <= 0 ||
+    !Number.isInteger(fileId) ||
+    fileId <= 0 ||
+    !Number.isInteger(reservationId) ||
+    reservationId <= 0
+  )
+    return json(400, { error: 'tripId, fileId and reservationId are required' })
+  try {
+    if (!(await ctx.trips.getById(tripId))) return json(404, { error: 'trip not found' })
+    const files = await ctx.files.list(tripId)
+    const file = files.find((item) => Number(item?.id) === fileId)
+    if (!file) return json(404, { error: 'file not found' })
+    if (Number(file.reservation_id) !== reservationId)
+      return json(409, { error: 'This linked file cannot be detached through the plugin' })
+    const updated = await ctx.files.update(tripId, fileId, { reservation_id: null })
+    return json(200, { file: updated })
+  } catch (error) {
+    ctx.log.error(
+      `failed to detach file ${fileId} from reservation ${reservationId}: ${error?.message || String(error)}`,
+    )
+    return sdkError(error, 'Unable to detach file')
+  }
+}
+
 module.exports = {
   reservationsHandler,
   saveReservationHandler,
   deleteReservationHandler,
   saveCostHandler,
   deleteCostHandler,
+  saveFileHandler,
+  linkFileHandler,
+  unlinkFileHandler,
 }

@@ -12,6 +12,7 @@ export interface TrekBridge {
   onContext(callback: (ctx: TrekContext) => void): () => void
   invoke<T = unknown>(sub: string, init?: { method?: string; body?: unknown }): Promise<T>
   notify(level: 'success' | 'error' | 'info' | 'warning', message: string): void
+  openExternal(url: string): void
   confirm(options: {
     title?: string
     message: string
@@ -78,6 +79,10 @@ export interface ReservationFile {
   id?: number
   filename?: string
   original_name?: string
+  name?: string
+  mimetype?: string
+  size?: number
+  url?: string
   reservation_id?: number | null
   linked_reservation_ids?: number[]
   [key: string]: unknown

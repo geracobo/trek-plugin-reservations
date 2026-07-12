@@ -6,6 +6,9 @@ const {
   deleteReservationHandler,
   saveCostHandler,
   deleteCostHandler,
+  saveFileHandler,
+  linkFileHandler,
+  unlinkFileHandler,
 } = require('./reservations')
 const { mapLocationsHandler } = require('./map-locations')
 const { tripPlacesSearchHandler } = require('./trip-places')
@@ -20,6 +23,9 @@ module.exports = definePlugin({
     { method: 'DELETE', path: '/reservations', auth: true, handler: deleteReservationHandler },
     { method: 'POST', path: '/costs/save', auth: true, handler: saveCostHandler },
     { method: 'DELETE', path: '/costs', auth: true, handler: deleteCostHandler },
+    { method: 'POST', path: '/files/save', auth: true, handler: saveFileHandler },
+    { method: 'POST', path: '/files/link', auth: true, handler: linkFileHandler },
+    { method: 'DELETE', path: '/files/link', auth: true, handler: unlinkFileHandler },
     { method: 'POST', path: '/map-locations', auth: true, handler: mapLocationsHandler },
     { method: 'GET', path: '/trip-places', auth: true, handler: tripPlacesSearchHandler },
   ],
