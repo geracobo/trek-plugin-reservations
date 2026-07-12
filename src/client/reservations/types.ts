@@ -12,6 +12,13 @@ export interface TrekBridge {
   onContext(callback: (ctx: TrekContext) => void): () => void
   invoke<T = unknown>(sub: string, init?: { method?: string; body?: unknown }): Promise<T>
   notify(level: 'success' | 'error' | 'info' | 'warning', message: string): void
+  confirm(options: {
+    title?: string
+    message: string
+    confirmLabel?: string
+    cancelLabel?: string
+    danger?: boolean
+  }): Promise<boolean>
 }
 
 declare global {

@@ -31,9 +31,17 @@ interface ReservationCardViewProps {
   days: Day[]
   accommodations: Accommodation[]
   onEdit: (reservation: Reservation) => void
+  onDelete: (reservation: Reservation) => void
 }
 
-export function ReservationCardView({ reservations, trip, days, accommodations, onEdit }: ReservationCardViewProps) {
+export function ReservationCardView({
+  reservations,
+  trip,
+  days,
+  accommodations,
+  onEdit,
+  onDelete,
+}: ReservationCardViewProps) {
   const groups = groupReservations(reservations)
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set())
 
@@ -75,6 +83,7 @@ export function ReservationCardView({ reservations, trip, days, accommodations, 
                 days={days}
                 accommodations={accommodations}
                 onEdit={onEdit}
+                onDelete={onDelete}
               />
             ))}
           </div>

@@ -223,6 +223,30 @@ export function ReservationsPage() {
       }
     })
   }
+  const deleteReservation = async (reservation: Reservation) => {
+    if (!pageState.tripId) return
+    const confirmed = await window.trek.confirm({
+      title: 'Delete reservation',
+      message: `Delete “${reservationTitle(reservation)}”? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      danger: true,
+    })
+    if (!confirmed) return
+    try {
+      await window.trek.invoke('/reservations', {
+        method: 'DELETE',
+        body: { tripId: pageState.tripId, reservationId: reservation.id },
+      })
+      setPageState((current) => ({
+        ...current,
+        reservations: current.reservations.filter((currentReservation) => currentReservation.id !== reservation.id),
+      }))
+      window.trek.notify('success', 'Reservation deleted')
+    } catch (error) {
+      window.trek.notify('error', error instanceof Error ? error.message : 'Unable to delete reservation')
+    }
+  }
 
   const hasActiveFilters = search.trim() || selectedTypes.size > 0 || statusFilter !== 'all'
 
@@ -274,6 +298,7 @@ export function ReservationsPage() {
           reservations={filtered}
           visibleColumns={defaultTableColumns}
           onEdit={openEditReservation}
+          onDelete={deleteReservation}
         />
       ) : viewMode === 'calendar' ? (
         <ReservationCalendarView reservations={filtered} trip={pageState.trip} onEdit={openEditReservation} />
@@ -284,6 +309,7 @@ export function ReservationsPage() {
           days={pageState.days}
           accommodations={pageState.accommodations}
           onEdit={openEditReservation}
+          onDelete={deleteReservation}
         />
       )}
       <ReservationEditor

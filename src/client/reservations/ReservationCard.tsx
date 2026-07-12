@@ -33,6 +33,7 @@ interface ReservationCardProps {
   days: Day[]
   accommodations: Accommodation[]
   onEdit: (reservation: Reservation) => void
+  onDelete: (reservation: Reservation) => void
 }
 
 function Field({
@@ -306,7 +307,7 @@ function FlightDetails({
   )
 }
 
-export function ReservationCard({ reservation, trip, days, accommodations, onEdit }: ReservationCardProps) {
+export function ReservationCard({ reservation, trip, days, accommodations, onEdit, onDelete }: ReservationCardProps) {
   const typeInfo = getType(reservation.type)
   const TypeIcon = typeInfo.Icon
   const status = reservationStatus(reservation)
@@ -377,7 +378,7 @@ export function ReservationCard({ reservation, trip, days, accommodations, onEdi
             <button
               type="button"
               className="grid size-[26px] shrink-0 cursor-pointer place-items-center rounded-md border-0 bg-transparent text-content-faint hover:bg-[var(--danger-soft)] hover:text-danger"
-              onClick={() => window.trek.notify('info', 'Deleting reservations from this plugin is not available yet.')}
+              onClick={() => onDelete(reservation)}
               title="Delete reservation"
             >
               <Trash2 size={13} />

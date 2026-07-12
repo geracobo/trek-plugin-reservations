@@ -1,4 +1,4 @@
-import { FileText, Files } from 'lucide-react'
+import { FileText, Files, Pencil, Trash2 } from 'lucide-react'
 import type { Reservation } from './types'
 import { getType, reservationRoute, reservationTimeRange, reservationTitle, TRANSPORT_TYPES } from './model'
 
@@ -19,6 +19,7 @@ interface ReservationTableViewProps {
   reservations: Reservation[]
   visibleColumns: Set<TableColumnKey>
   onEdit: (reservation: Reservation) => void
+  onDelete: (reservation: Reservation) => void
 }
 
 function tableDateRange(reservation: Reservation) {
@@ -59,10 +60,12 @@ function ReservationTableRow({
   reservation,
   visibleColumns,
   onEdit,
+  onDelete,
 }: {
   reservation: Reservation
   visibleColumns: Set<TableColumnKey>
   onEdit: (reservation: Reservation) => void
+  onDelete: (reservation: Reservation) => void
 }) {
   const typeInfo = getType(reservation.type)
   const TypeIcon = typeInfo.Icon
@@ -151,11 +154,33 @@ function ReservationTableRow({
           )}
         </td>
       ) : null}
+      <td className="whitespace-nowrap text-center">
+        <div className="flex justify-center gap-1">
+          <button
+            type="button"
+            onClick={() => onEdit(reservation)}
+            className="rounded-md p-1.5 text-content-muted hover:bg-surface-hover hover:text-content"
+            title="Edit reservation"
+            aria-label="Edit reservation"
+          >
+            <Pencil size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(reservation)}
+            className="rounded-md p-1.5 text-content-muted hover:bg-[var(--danger-soft)] hover:text-danger"
+            title="Delete reservation"
+            aria-label="Delete reservation"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </td>
     </tr>
   )
 }
 
-export function ReservationTableView({ reservations, visibleColumns, onEdit }: ReservationTableViewProps) {
+export function ReservationTableView({ reservations, visibleColumns, onEdit, onDelete }: ReservationTableViewProps) {
   return (
     <div className="trek-card overflow-auto rounded-xl p-0">
       <table className="w-full min-w-[980px] border-collapse text-[13px] [&_td]:border-b [&_td]:border-edge-faint [&_td]:px-[11px] [&_td]:py-2.5 [&_td]:text-left [&_td]:align-middle [&_th]:sticky [&_th]:top-0 [&_th]:z-1 [&_th]:border-b [&_th]:border-edge-faint [&_th]:bg-surface-secondary [&_th]:px-[11px] [&_th]:py-[9px] [&_th]:text-left [&_th]:text-[10px] [&_th]:font-extrabold [&_th]:uppercase [&_th]:text-content-faint [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-surface-hover">
@@ -164,6 +189,7 @@ export function ReservationTableView({ reservations, visibleColumns, onEdit }: R
             {TABLE_COLUMNS.filter((column) => visibleColumns.has(column.key)).map((column) => (
               <th key={column.key}>{column.label}</th>
             ))}
+            <th className="text-center">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -173,6 +199,7 @@ export function ReservationTableView({ reservations, visibleColumns, onEdit }: R
               reservation={reservation}
               visibleColumns={visibleColumns}
               onEdit={onEdit}
+              onDelete={onDelete}
             />
           ))}
         </tbody>

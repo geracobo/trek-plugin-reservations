@@ -118,4 +118,21 @@ async function saveReservationHandler(req, ctx) {
   }
 }
 
-module.exports = { reservationsHandler, saveReservationHandler }
+async function deleteReservationHandler(req, ctx) {
+  const body = req.body && typeof req.body === 'object' ? req.body : {}
+  const tripId = Number(body.tripId)
+  const reservationId = Number(body.reservationId)
+  if (!Number.isInteger(tripId) || tripId <= 0 || !Number.isInteger(reservationId) || reservationId <= 0)
+    return json(400, { error: 'tripId and reservationId are required' })
+  try {
+    if (!(await ctx.trips.getById(tripId))) return json(404, { error: 'trip not found' })
+    await ctx.reservations.delete(tripId, reservationId)
+    return json(200, { deleted: true })
+  } catch (error) {
+    const message = error && error.message ? error.message : String(error)
+    ctx.log.error(`failed to delete reservation ${reservationId} for trip ${tripId}: ${message}`)
+    return json(500, { error: 'Unable to delete reservation' })
+  }
+}
+
+module.exports = { reservationsHandler, saveReservationHandler, deleteReservationHandler }
