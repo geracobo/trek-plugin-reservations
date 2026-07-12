@@ -31,8 +31,12 @@ that marker in the built `build/client/index.html`. The SDK's `injectTrekUi` fun
 replaces it during `dev` and `pack` with:
 
 ```html
-<style data-trek-ui>/* TREK_UI_CSS */</style>
-<script data-trek-ui>/* TREK_THEME_JS */</script>
+<style data-trek-ui>
+  /* TREK_UI_CSS */
+</style>
+<script data-trek-ui>
+  /* TREK_THEME_JS */
+</script>
 ```
 
 The source HTML deliberately does not import either design-kit file. Vite emits

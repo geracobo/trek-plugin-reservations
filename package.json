@@ -7,6 +7,8 @@
     "build": "vite build",
     "dev": "npm run build && node scripts/dev.mjs",
     "dev:sdk": "trek-plugin-sdk dev build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "pack": "npm run build && npx -y trek-plugin-sdk pack build --out plugin.zip",
     "validate": "npm run build && npx -y trek-plugin-sdk validate build"
   },
@@ -22,6 +24,7 @@
     "@types/node": "^22.20.1",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
+    "prettier": "^3.9.5",
     "tailwindcss": "^4.3.2",
     "trek-plugin-sdk": "^1.4.1",
     "typescript": "^5.7.2"

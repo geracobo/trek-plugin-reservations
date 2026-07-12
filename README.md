@@ -28,10 +28,10 @@ date/type/title/status sorting, card view, and a compact table view.
 
 ## Permissions
 
-| Permission | Why |
-|---|---|
+| Permission      | Why                                                                            |
+| --------------- | ------------------------------------------------------------------------------ |
 | `db:read:trips` | Read the active trip, places, and reservation rows for the authenticated user. |
-| `db:read:files` | Read filenames for files linked to reservations in the active trip. |
+| `db:read:files` | Read filenames for files linked to reservations in the active trip.            |
 
 ## Setup
 

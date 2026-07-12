@@ -1,11 +1,15 @@
 @layer theme, base, components, utilities;
 
-/* TREK owns the reset, so Tailwind Preflight is intentionally omitted. */
-@import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/utilities.css" layer(utilities);
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/preflight.css' layer(base);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+/* Plugin frames receive TREK's theme as `html[data-theme]`, not `.dark`. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 @theme inline {
   --color-surface: var(--bg-card);
+  --color-surface-card: var(--bg-card);
   --color-surface-primary: var(--bg-primary);
   --color-surface-secondary: var(--bg-secondary);
   --color-surface-muted: var(--bg-tertiary);
@@ -50,7 +54,7 @@ body,
 
 /* These controls use the design-kit button base, whose unlayered styles take
    precedence over Tailwind's `aria-pressed:*` utilities. */
-.reservation-view-mode .trek-btn[aria-pressed="true"] {
+.reservation-view-mode .trek-btn[aria-pressed='true'] {
   background: var(--accent-subtle);
   color: var(--accent);
   box-shadow: none;
@@ -63,7 +67,7 @@ body,
   font-size: 12px;
 }
 
-.reservation-status-filter .trek-btn[aria-pressed="true"] {
+.reservation-status-filter .trek-btn[aria-pressed='true'] {
   background: var(--bg-card);
   color: var(--text-primary);
   box-shadow: var(--shadow-sm);
@@ -80,4 +84,38 @@ body,
 .reservation-calendar-nav:hover:not(:disabled) {
   background: var(--bg-hover);
   color: var(--text-primary);
+}
+
+@keyframes trek-modal-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes trek-backdrop-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.trek-modal-backdrop {
+  overflow: hidden;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+.trek-backdrop-enter {
+  animation: trek-backdrop-enter 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.trek-modal-enter {
+  animation: trek-modal-enter 220ms cubic-bezier(0.23, 1, 0.32, 1);
 }

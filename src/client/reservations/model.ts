@@ -50,7 +50,7 @@ export const TYPE_OPTIONS: TypeOption[] = [
   { value: 'cruise', label: 'Cruise', Icon: Ship, color: '#0ea5e9' },
   { value: 'ferry', label: 'Ferry', Icon: Sailboat, color: '#0d9488' },
   { value: 'transit', label: 'Transit', Icon: TramFront, color: '#7c3aed' },
-  { value: 'transport_other', label: 'Other transport', Icon: Route, color: '#6b7280' },
+  { value: 'transport_other', label: 'Other', Icon: Route, color: '#6b7280' },
   { value: 'event', label: 'Event', Icon: Ticket, color: '#f59e0b' },
   { value: 'tour', label: 'Tour', Icon: Users, color: '#10b981' },
   { value: 'other', label: 'Other', Icon: FileText, color: '#6b7280' },
@@ -113,18 +113,21 @@ export function reservationRoute(reservation: Reservation) {
 
   const metadata = normalizeMetadata(reservation)
   if (Array.isArray(metadata.legs)) {
-    const stops = metadata.legs.flatMap((leg, index) => {
-      if (!leg || typeof leg !== 'object') return []
-      const typedLeg = leg as Record<string, unknown>
-      const from = typeof typedLeg.from === 'string' ? typedLeg.from : null
-      const to = typeof typedLeg.to === 'string' ? typedLeg.to : null
-      return index === 0 ? [from, to] : [to]
-    }).filter((name): name is string => Boolean(name))
+    const stops = metadata.legs
+      .flatMap((leg, index) => {
+        if (!leg || typeof leg !== 'object') return []
+        const typedLeg = leg as Record<string, unknown>
+        const from = typeof typedLeg.from === 'string' ? typedLeg.from : null
+        const to = typeof typedLeg.to === 'string' ? typedLeg.to : null
+        return index === 0 ? [from, to] : [to]
+      })
+      .filter((name): name is string => Boolean(name))
     if (stops.length >= 2) return stops.filter((name, index) => index === 0 || name !== stops[index - 1])
   }
 
-  const metadataStops = [metadata.departure_airport, metadata.arrival_airport]
-    .filter((name): name is string => typeof name === 'string' && name.length > 0)
+  const metadataStops = [metadata.departure_airport, metadata.arrival_airport].filter(
+    (name): name is string => typeof name === 'string' && name.length > 0,
+  )
   if (metadataStops.length >= 2) return metadataStops
 
   const titleRoute = reservation.title?.match(/\s[-–—]\s(.+?)\s+to\s+(.+)$/i)
@@ -160,7 +163,9 @@ export function reservationTimeRange(reservation: Reservation) {
   let end = splitReservationDateTime(reservation.reservation_end_time).time
   if (!start && !end) {
     const metadata = normalizeMetadata(reservation)
-    const legs = Array.isArray(metadata.legs) ? metadata.legs.filter((leg): leg is Record<string, unknown> => Boolean(leg) && typeof leg === 'object') : []
+    const legs = Array.isArray(metadata.legs)
+      ? metadata.legs.filter((leg): leg is Record<string, unknown> => Boolean(leg) && typeof leg === 'object')
+      : []
     const first = legs[0]
     const last = legs[legs.length - 1]
     start = typeof first?.dep_time === 'string' ? first.dep_time : ''
@@ -193,8 +198,15 @@ export function metadataFields(reservation: Reservation) {
   add('Seat', meta.seat && meta.class ? `${meta.seat} - ${meta.class}` : meta.seat)
   add('Check-in', meta.check_in_time ? formatReservationTime(String(meta.check_in_time)) : '')
   add('Check-out', meta.check_out_time ? formatReservationTime(String(meta.check_out_time)) : '')
-  add('Price', meta.price != null && meta.price !== '' ? `${meta.price}${meta.priceCurrency ? ` ${meta.priceCurrency}` : ''}` : '')
-  if (reservation.type === 'hotel') add('Accommodation', reservation.accommodation_name || reservation.location || reservation.place_name || reservationTitle(reservation))
+  add(
+    'Price',
+    meta.price != null && meta.price !== '' ? `${meta.price}${meta.priceCurrency ? ` ${meta.priceCurrency}` : ''}` : '',
+  )
+  if (reservation.type === 'hotel')
+    add(
+      'Accommodation',
+      reservation.accommodation_name || reservation.location || reservation.place_name || reservationTitle(reservation),
+    )
   else add('Location', reservation.location || reservation.place_name)
 
   return fields
@@ -209,5 +221,10 @@ export function filterAndSortReservations(
     .filter((reservation) => selectedTypes.size === 0 || selectedTypes.has(reservation.type ?? 'other'))
     .filter((reservation) => statusFilter === 'all' || reservationStatus(reservation) === statusFilter)
     .slice()
-    .sort((a, b) => reservationDate(a).localeCompare(reservationDate(b)) || reservationTimeRange(a).localeCompare(reservationTimeRange(b)) || reservationTitle(a).localeCompare(reservationTitle(b)))
+    .sort(
+      (a, b) =>
+        reservationDate(a).localeCompare(reservationDate(b)) ||
+        reservationTimeRange(a).localeCompare(reservationTimeRange(b)) ||
+        reservationTitle(a).localeCompare(reservationTitle(b)),
+    )
 }

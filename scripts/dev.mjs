@@ -33,11 +33,7 @@ for (const child of children) {
       stop('SIGTERM')
     }
     if (remaining === 0) {
-      process.exitCode = requestedSignal === 'SIGINT'
-        ? 130
-        : requestedSignal === 'SIGTERM'
-          ? 143
-          : failureCode
+      process.exitCode = requestedSignal === 'SIGINT' ? 130 : requestedSignal === 'SIGTERM' ? 143 : failureCode
     }
   })
 }

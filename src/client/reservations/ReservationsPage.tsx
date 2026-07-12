@@ -1,12 +1,32 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Accommodation, Day, Place, ReservationFile, ReservationsResponse, Reservation, StatusFilter, Trip, ViewMode } from './types'
-import { filterAndSortReservations, getType, reservationRoute, reservationStatus, reservationTitle, TRANSPORT_TYPES, TYPE_OPTIONS } from './model'
+import type {
+  Accommodation,
+  Day,
+  Place,
+  ReservationFile,
+  ReservationsResponse,
+  Reservation,
+  StatusFilter,
+  Trip,
+  ViewMode,
+} from './types'
+import {
+  filterAndSortReservations,
+  getType,
+  reservationRoute,
+  reservationStatus,
+  reservationTitle,
+  TRANSPORT_TYPES,
+  TYPE_OPTIONS,
+} from './model'
 import { ReservationCardView } from './ReservationCardView'
 import { ReservationCalendarView } from './ReservationCalendarView'
 import { ReservationTableView, TABLE_COLUMNS } from './ReservationTableView'
 import type { TableColumnKey } from './ReservationTableView'
 import { ReservationHeader } from './ReservationHeader'
 import type { ReservationCategory } from './ReservationHeader'
+import { ReservationEditor } from './editor/ReservationEditor'
+import type { ReservationTypeCategory } from './editor/ReservationTypeSelector'
 
 interface ReservationsPageState {
   tripId: number | null
@@ -69,12 +89,25 @@ export function ReservationsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [category, setCategory] = useState<ReservationCategory>('all')
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(() => new Set())
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingReservation, setEditingReservation] = useState<Reservation | null>(null)
+  const [editorSession, setEditorSession] = useState(0)
 
   useEffect(() => {
     return window.trek.onContext((ctx) => {
       const tripId = ctx.tripId ? Number(ctx.tripId) : null
       if (!tripId) {
-        setPageState({ tripId: null, trip: null, reservations: [], places: [], days: [], accommodations: [], files: [], loading: false, error: 'Open this plugin from a trip page so TREK can provide a trip id.' })
+        setPageState({
+          tripId: null,
+          trip: null,
+          reservations: [],
+          places: [],
+          days: [],
+          accommodations: [],
+          files: [],
+          loading: false,
+          error: 'Open this plugin from a trip page so TREK can provide a trip id.',
+        })
         return
       }
 
@@ -115,21 +148,36 @@ export function ReservationsPage() {
   }, [])
 
   const typeCounts = useMemo(() => countByType(pageState.reservations), [pageState.reservations])
-  const categoryCounts = useMemo(() => pageState.reservations.reduce<Record<Exclude<ReservationCategory, 'all'>, number>>((counts, reservation) => {
-    const key = reservationCategory(reservation)
-    counts[key] += 1
-    return counts
-  }, { transportation: 0, accommodation: 0, booking: 0 }), [pageState.reservations])
-  const secondaryTypes = useMemo(() => category === 'all'
-    ? []
-    : TYPE_OPTIONS.filter((option) => typeCounts[option.value] && reservationCategory({ id: 0, type: option.value }) === category), [category, typeCounts])
+  const categoryCounts = useMemo(
+    () =>
+      pageState.reservations.reduce<Record<Exclude<ReservationCategory, 'all'>, number>>(
+        (counts, reservation) => {
+          const key = reservationCategory(reservation)
+          counts[key] += 1
+          return counts
+        },
+        { transportation: 0, accommodation: 0, booking: 0 },
+      ),
+    [pageState.reservations],
+  )
+  const secondaryTypes = useMemo(
+    () =>
+      category === 'all'
+        ? []
+        : TYPE_OPTIONS.filter(
+            (option) => typeCounts[option.value] && reservationCategory({ id: 0, type: option.value }) === category,
+          ),
+    [category, typeCounts],
+  )
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
-    const inCategory = category === 'all'
-      ? pageState.reservations
-      : pageState.reservations.filter((reservation) => reservationCategory(reservation) === category)
-    return filterAndSortReservations(inCategory, selectedTypes, statusFilter)
-      .filter((reservation) => !query || reservationSearchText(reservation).includes(query))
+    const inCategory =
+      category === 'all'
+        ? pageState.reservations
+        : pageState.reservations.filter((reservation) => reservationCategory(reservation) === category)
+    return filterAndSortReservations(inCategory, selectedTypes, statusFilter).filter(
+      (reservation) => !query || reservationSearchText(reservation).includes(query),
+    )
   }, [pageState.reservations, category, selectedTypes, statusFilter, search])
 
   const toggleType = (type: string) => {
@@ -150,6 +198,17 @@ export function ReservationsPage() {
     setSearch('')
     setSelectedTypes(new Set())
     setStatusFilter('all')
+  }
+
+  const openNewReservation = () => {
+    setEditingReservation(null)
+    setEditorSession((session) => session + 1)
+    setDialogOpen(true)
+  }
+  const openEditReservation = (reservation: Reservation) => {
+    setEditingReservation(reservation)
+    setEditorSession((session) => session + 1)
+    setDialogOpen(true)
   }
 
   const hasActiveFilters = search.trim() || selectedTypes.size > 0 || statusFilter !== 'all'
@@ -174,6 +233,7 @@ export function ReservationsPage() {
         onTypeToggle={toggleType}
         onStatusChange={setStatusFilter}
         onClearFilters={clearFilters}
+        onAddReservation={openNewReservation}
       />
 
       {pageState.loading ? (
@@ -197,12 +257,38 @@ export function ReservationsPage() {
           <p>Adjust the filters or search.</p>
         </div>
       ) : viewMode === 'table' ? (
-        <ReservationTableView reservations={filtered} visibleColumns={defaultTableColumns} />
+        <ReservationTableView
+          reservations={filtered}
+          visibleColumns={defaultTableColumns}
+          onEdit={openEditReservation}
+        />
       ) : viewMode === 'calendar' ? (
-        <ReservationCalendarView reservations={filtered} trip={pageState.trip} />
+        <ReservationCalendarView reservations={filtered} trip={pageState.trip} onEdit={openEditReservation} />
       ) : (
-        <ReservationCardView reservations={filtered} trip={pageState.trip} days={pageState.days} accommodations={pageState.accommodations} />
+        <ReservationCardView
+          reservations={filtered}
+          trip={pageState.trip}
+          days={pageState.days}
+          accommodations={pageState.accommodations}
+          onEdit={openEditReservation}
+        />
       )}
+      <ReservationEditor
+        key={editorSession}
+        open={dialogOpen}
+        reservation={editingReservation}
+        startingCategory={
+          editingReservation
+            ? undefined
+            : ((category === 'transportation' ? 'transit' : category === 'all' ? undefined : category) as
+                ReservationTypeCategory | undefined)
+        }
+        days={pageState.days}
+        places={pageState.places}
+        accommodations={pageState.accommodations}
+        files={pageState.files}
+        onClose={() => setDialogOpen(false)}
+      />
     </main>
   )
 }
