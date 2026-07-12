@@ -101,9 +101,12 @@ export function MultiEndpointTransportForm({ tripId, type, reservation, days, on
     const first = picked[0]
     const last = picked.at(-1)
     const dayDate = (id: string) => days.find((day) => String(day.id) === id)?.date || null
+    // Match TREK's TransportModal: day linkage and a reservation timestamp are
+    // separate. A selected day without an explicit time leaves these fields null.
     const dateTime = (dayId: string, time: string) => {
+      if (!time) return null
       const date = dayDate(dayId)
-      return date ? `${date}${time ? `T${time}` : ''}` : null
+      return date ? `${date}T${time}` : time
     }
     onDraftChange?.({
       title,

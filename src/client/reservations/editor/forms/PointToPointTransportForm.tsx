@@ -53,9 +53,13 @@ export function PointToPointTransportForm({ tripId, type, reservation, days, onD
   }, [reservation])
   const set = (key: keyof typeof draft, value: string) => setDraft((current) => ({ ...current, [key]: value }))
   useEffect(() => {
+    // Match TREK's TransportModal: a trip day associates the reservation with
+    // the itinerary but must not invent a reservation timestamp. Only an
+    // explicitly chosen time writes reservation_time/reservation_end_time.
     const dateTime = (dayId: string, time: string) => {
+      if (!time) return null
       const date = days.find((day) => String(day.id) === dayId)?.date
-      return date ? `${date}${time ? `T${time}` : ''}` : null
+      return date ? `${date}T${time}` : time
     }
     onDraftChange?.({
       title: draft.title,

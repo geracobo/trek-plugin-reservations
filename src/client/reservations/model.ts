@@ -16,7 +16,7 @@ import {
   Users,
   Utensils,
 } from 'lucide-react'
-import type { Reservation, StatusFilter } from './types'
+import type { Accommodation, Day, Reservation, StatusFilter } from './types'
 
 export const TRANSPORT_TYPES = new Set([
   'flight',
@@ -216,15 +216,34 @@ export function filterAndSortReservations(
   reservations: Reservation[],
   selectedTypes: Set<string>,
   statusFilter: StatusFilter,
+  days: Day[],
+  accommodations: Accommodation[],
 ) {
+  const dayDates = new Map(days.map((day) => [day.id, day.date]))
+  const effectiveDateTime = (reservation: Reservation) => {
+    const { date, time } = splitReservationDateTime(reservation.reservation_time)
+    const accommodation =
+      reservation.type === 'hotel' && reservation.accommodation_id
+        ? accommodations.find((item) => item.id === reservation.accommodation_id)
+        : undefined
+    const dayId = reservation.type === 'hotel' ? accommodation?.start_day_id || reservation.day_id : reservation.day_id
+    const effectiveDate = date || (dayId != null ? dayDates.get(dayId) : null)
+    return effectiveDate ? `${effectiveDate}T${time || '00:00'}` : null
+  }
+
   return reservations
     .filter((reservation) => selectedTypes.size === 0 || selectedTypes.has(reservation.type ?? 'other'))
     .filter((reservation) => statusFilter === 'all' || reservationStatus(reservation) === statusFilter)
-    .slice()
-    .sort(
-      (a, b) =>
-        reservationDate(a).localeCompare(reservationDate(b)) ||
-        reservationTimeRange(a).localeCompare(reservationTimeRange(b)) ||
-        reservationTitle(a).localeCompare(reservationTitle(b)),
-    )
+    .map((reservation) => ({ reservation, key: effectiveDateTime(reservation) }))
+    .sort((a, b) => {
+      if (a.key !== b.key) {
+        if (a.key === null) return 1
+        if (b.key === null) return -1
+        return a.key < b.key ? -1 : 1
+      }
+      const aCreatedAt = typeof a.reservation.created_at === 'string' ? a.reservation.created_at : ''
+      const bCreatedAt = typeof b.reservation.created_at === 'string' ? b.reservation.created_at : ''
+      return aCreatedAt.localeCompare(bCreatedAt)
+    })
+    .map(({ reservation }) => reservation)
 }

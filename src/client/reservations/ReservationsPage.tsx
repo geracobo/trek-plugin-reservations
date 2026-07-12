@@ -189,9 +189,13 @@ export function ReservationsPage() {
       category === 'all'
         ? pageState.reservations
         : pageState.reservations.filter((reservation) => reservationCategory(reservation) === category)
-    return filterAndSortReservations(inCategory, selectedTypes, statusFilter).filter(
-      (reservation) => !query || reservationSearchText(reservation).includes(query),
-    )
+    return filterAndSortReservations(
+      inCategory,
+      selectedTypes,
+      statusFilter,
+      pageState.days,
+      pageState.accommodations,
+    ).filter((reservation) => !query || reservationSearchText(reservation).includes(query))
   }, [pageState.reservations, category, selectedTypes, statusFilter, search])
 
   const toggleType = (type: string) => {

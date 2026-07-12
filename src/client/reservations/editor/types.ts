@@ -58,6 +58,20 @@ export const RESERVATION_TYPE_BEHAVIOR = {
   other: 'multi-date-booking',
 } as const satisfies Record<string, ReservationFormKind>
 
+/**
+ * Payload policy, intentionally aligned with TREK's native forms:
+ *
+ * - Manual transport (`point-to-point-transport`, `multi-endpoint-transport`)
+ *   uses day_id/end_day_id for itinerary placement. It writes reservation time
+ *   fields only after the user explicitly selects a time.
+ * - Date-based bookings write their chosen calendar date, with time optional.
+ * - Accommodation dates belong to the accommodation record; reservation time
+ *   fields remain null.
+ *
+ * Keep this distinction when changing a form: deriving a reservation timestamp
+ * from a trip day changes sorting and can create unintended calendar entries.
+ */
+
 export type ReservationType = keyof typeof RESERVATION_TYPE_BEHAVIOR
 
 export function reservationFormKind(type: string | null | undefined): ReservationFormKind {
