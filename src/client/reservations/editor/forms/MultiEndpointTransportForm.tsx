@@ -7,6 +7,8 @@ import { PlaceInputSearch, type PlaceInputSearchResult } from '../PlaceInputSear
 
 interface Waypoint {
   name: string
+  code: string | null
+  timezone: string | null
   lat: number | null
   lng: number | null
   arrivalDayId: string
@@ -21,6 +23,8 @@ interface Waypoint {
 
 const emptyWaypoint = (dayId = ''): Waypoint => ({
   name: '',
+  code: null,
+  timezone: null,
   lat: null,
   lng: null,
   arrivalDayId: dayId,
@@ -38,14 +42,7 @@ function splitDateTime(value: string | null | undefined) {
   return { date, time: time.slice(0, 5) }
 }
 
-export function MultiEndpointTransportForm({
-  tripId,
-  type,
-  reservation,
-  days,
-  places,
-  onDraftChange,
-}: ReservationFormProps) {
+export function MultiEndpointTransportForm({ tripId, type, reservation, days, onDraftChange }: ReservationFormProps) {
   const isFlight = type === 'flight'
   const [title, setTitle] = useState('')
   const [status, setStatus] = useState('pending')
@@ -70,6 +67,8 @@ export function MultiEndpointTransportForm({
               return {
                 ...emptyWaypoint(),
                 name: endpoint.name || '',
+                code: endpoint.code || null,
+                timezone: endpoint.timezone || null,
                 lat: Number.isFinite(Number(endpoint.lat)) ? Number(endpoint.lat) : null,
                 lng: Number.isFinite(Number(endpoint.lng)) ? Number(endpoint.lng) : null,
                 arrivalDayId: String(
@@ -118,6 +117,8 @@ export function MultiEndpointTransportForm({
         reservation_end_time: last ? dateTime(last.arrivalDayId, last.arrivalTime) : null,
         endpoints: picked.map((waypoint, sequence) => ({
           name: waypoint.name,
+          code: waypoint.code,
+          timezone: waypoint.timezone,
           role: sequence === 0 ? 'from' : sequence === picked.length - 1 ? 'to' : 'stop',
           sequence,
           lat: waypoint.lat,
@@ -168,7 +169,13 @@ export function MultiEndpointTransportForm({
       ...current.slice(index + 1),
     ])
   const pickWaypoint = (index: number, place: PlaceInputSearchResult) =>
-    update(index, { name: place.name || place.address, lat: place.lat ?? null, lng: place.lng ?? null })
+    update(index, {
+      name: isFlight ? `${place.city || place.name} (${place.iata || ''})` : place.name || place.address,
+      code: place.iata || null,
+      timezone: place.timezone || null,
+      lat: place.lat ?? null,
+      lng: place.lng ?? null,
+    })
   const dayOptions = days.map((day) => ({
     value: String(day.id),
     label: `${day.title || `Day ${day.day_number || ''}`}${day.date ? ` · ${day.date}` : ''}`,
@@ -201,14 +208,14 @@ export function MultiEndpointTransportForm({
                   <div className="min-w-0 flex-1">
                     <PlaceInputSearch
                       tripId={tripId}
-                      places={places}
-                      world={isFlight ? { type: 'airport', strictTypeFiltering: true } : {}}
+                      searchType={isFlight ? 'airport' : 'world-place'}
+                      debounceMs={isFlight ? 220 : undefined}
                       selectedValue="name"
                       value={waypoint.name}
                       placeholder={isFlight ? 'Airport code or city (e.g. FRA)' : 'Search station, port, address…'}
                       selected={waypoint.lat !== null && waypoint.lng !== null}
-                      onClear={() => update(index, { lat: null, lng: null })}
-                      onChange={(name) => update(index, { name, lat: null, lng: null })}
+                      onClear={() => update(index, { code: null, timezone: null, lat: null, lng: null })}
+                      onChange={(name) => update(index, { name, code: null, timezone: null, lat: null, lng: null })}
                       onPick={(place) => pickWaypoint(index, place)}
                     />
                   </div>
@@ -224,7 +231,9 @@ export function MultiEndpointTransportForm({
                   )}
                 </div>
                 {!first && (
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div
+                    className={`grid grid-cols-1 gap-3 ${isFlight && waypoint.timezone ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}
+                  >
                     <Field label="Arrival day">
                       <select
                         data-trek-native
@@ -248,11 +257,20 @@ export function MultiEndpointTransportForm({
                         onChange={(event) => update(index, { arrivalTime: event.target.value })}
                       />
                     </Field>
+                    {isFlight && waypoint.timezone && (
+                      <Field label="Arrival timezone">
+                        <div className={`${inputClass} bg-surface-tertiary text-content-muted`}>
+                          {waypoint.timezone}
+                        </div>
+                      </Field>
+                    )}
                   </div>
                 )}
                 {!last && (
                   <>
-                    <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div
+                      className={`mt-2 grid grid-cols-1 gap-3 ${isFlight && waypoint.timezone ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}
+                    >
                       <Field label="Departure day">
                         <select
                           data-trek-native
@@ -276,6 +294,13 @@ export function MultiEndpointTransportForm({
                           onChange={(event) => update(index, { departureTime: event.target.value })}
                         />
                       </Field>
+                      {isFlight && waypoint.timezone && (
+                        <Field label="Departure timezone">
+                          <div className={`${inputClass} bg-surface-tertiary text-content-muted`}>
+                            {waypoint.timezone}
+                          </div>
+                        </Field>
+                      )}
                     </div>
                     <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
                       {isFlight && (

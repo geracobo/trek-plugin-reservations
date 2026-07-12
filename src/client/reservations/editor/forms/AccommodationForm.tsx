@@ -142,7 +142,7 @@ export function AccommodationForm({
       <Field label="Location / address">
         <PlaceInputSearch
           tripId={tripId}
-          places={places}
+          searchType="world-place"
           value={draft.address}
           placeholder="Address, Airport, Hotel..."
           onChange={(value) => set('address', value)}

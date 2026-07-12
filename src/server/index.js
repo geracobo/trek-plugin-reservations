@@ -2,6 +2,7 @@
 const { definePlugin } = require('trek-plugin-sdk')
 const { reservationsHandler, saveReservationHandler, deleteReservationHandler } = require('./reservations')
 const { mapLocationsHandler } = require('./map-locations')
+const { tripPlacesSearchHandler } = require('./trip-places')
 
 module.exports = definePlugin({
   async onLoad(ctx) {
@@ -12,5 +13,6 @@ module.exports = definePlugin({
     { method: 'POST', path: '/reservations/save', auth: true, handler: saveReservationHandler },
     { method: 'DELETE', path: '/reservations', auth: true, handler: deleteReservationHandler },
     { method: 'POST', path: '/map-locations', auth: true, handler: mapLocationsHandler },
+    { method: 'GET', path: '/trip-places', auth: true, handler: tripPlacesSearchHandler },
   ],
 })

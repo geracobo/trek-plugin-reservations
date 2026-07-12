@@ -130,7 +130,7 @@ export function MultiDateBookingForm({
       <Field label="Location / address">
         <PlaceInputSearch
           tripId={tripId}
-          places={places}
+          searchType="world-place"
           value={draft.location}
           placeholder="Address, Airport, Hotel..."
           onChange={(value) => set('location', value)}

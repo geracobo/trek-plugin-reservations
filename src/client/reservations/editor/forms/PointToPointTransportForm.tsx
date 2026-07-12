@@ -4,14 +4,7 @@ import { Field, inputClass } from '../FormFields'
 import { PlaceInputSearch, type PlaceInputSearchResult } from '../PlaceInputSearch'
 import { reservationRoute } from '../../model'
 
-export function PointToPointTransportForm({
-  tripId,
-  type,
-  reservation,
-  days,
-  places,
-  onDraftChange,
-}: ReservationFormProps) {
+export function PointToPointTransportForm({ tripId, type, reservation, days, onDraftChange }: ReservationFormProps) {
   const [draft, setDraft] = useState({
     title: '',
     from: '',
@@ -125,7 +118,7 @@ export function PointToPointTransportForm({
         <Field label="From">
           <PlaceInputSearch
             tripId={tripId}
-            places={places}
+            searchType="world-place"
             selectedValue="name"
             value={draft.from}
             placeholder="Search station, port, address…"
@@ -138,7 +131,7 @@ export function PointToPointTransportForm({
         <Field label="To">
           <PlaceInputSearch
             tripId={tripId}
-            places={places}
+            searchType="world-place"
             selectedValue="name"
             value={draft.to}
             placeholder="Search station, port, address…"

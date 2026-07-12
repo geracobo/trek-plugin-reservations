@@ -10,25 +10,14 @@ export interface PlaceInputSearchResult {
   lat?: number | null
   lng?: number | null
   source?: 'google' | 'openstreetmap' | 'trip'
+  iata?: string
+  icao?: string | null
+  city?: string
+  country?: string
+  timezone?: string
 }
 
-interface TripPlace {
-  id: number
-  name?: string
-  address?: string
-  lat?: number | null
-  lng?: number | null
-}
-
-export interface WorldPlaceLookup {
-  sources?: Array<'google' | 'nominatim'>
-  type?: string
-  strictTypeFiltering?: boolean
-}
-
-export interface TrekPlaceLookup {
-  filter?: (place: TripPlace) => boolean
-}
+export type PlaceSearchType = 'airport' | 'world-place' | 'trek-place'
 
 interface PlaceInputSearchProps {
   tripId: number | null
@@ -39,11 +28,8 @@ interface PlaceInputSearchProps {
   selectedValue?: 'name' | 'address'
   /** Defaults to 320ms, which is a practical Google Places typeahead cadence. */
   debounceMs?: number
-  /** Set false to omit external world-place lookup. */
-  world?: WorldPlaceLookup | false
-  /** Set false to omit places already saved in this TREK trip. */
-  trekPlaces?: TrekPlaceLookup | false
-  places?: TripPlace[]
+  /** What this field represents; the component chooses the lookup implementation. */
+  searchType: PlaceSearchType
   onPick?: (place: PlaceInputSearchResult) => void
   /** A structured location has been picked, so show TREK's clear affordance. */
   selected?: boolean
@@ -58,9 +44,7 @@ export function PlaceInputSearch({
   placeholder,
   selectedValue = 'address',
   debounceMs = 320,
-  world = {},
-  trekPlaces = {},
-  places = [],
+  searchType,
   onPick,
   selected = false,
   onClear,
@@ -73,23 +57,9 @@ export function PlaceInputSearch({
   const wrapperRef = useRef<HTMLDivElement>(null)
   const requestRef = useRef(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const query = value.trim().toLocaleLowerCase()
-  const localResults: PlaceInputSearchResult[] =
-    trekPlaces !== false && query.length >= 2
-      ? places
-          .filter((place) => trekPlaces.filter?.(place) ?? true)
-          .filter((place) => `${place.name || ''} ${place.address || ''}`.toLocaleLowerCase().includes(query))
-          .slice(0, 5)
-          .map((place) => ({
-            osm_id: `trip:${place.id}`,
-            name: place.name || place.address || `Place ${place.id}`,
-            address: place.address || '',
-            lat: place.lat ?? null,
-            lng: place.lng ?? null,
-            source: 'trip',
-          }))
-      : []
-  const results = [...localResults, ...remoteResults]
+  const airport = searchType === 'airport'
+  const trekPlaces = searchType === 'trek-place'
+  const results = remoteResults
 
   useEffect(() => {
     const close = (event: MouseEvent) => {
@@ -109,7 +79,7 @@ export function PlaceInputSearch({
   const search = (text: string) => {
     if (timerRef.current) clearTimeout(timerRef.current)
     const query = text.trim()
-    if (!tripId || world === false || query.length < 3) {
+    if (!tripId || query.length < (airport ? 2 : 3)) {
       setRemoteResults([])
       setLoading(false)
       return
@@ -118,20 +88,25 @@ export function PlaceInputSearch({
     timerRef.current = setTimeout(async () => {
       setLoading(true)
       try {
-        const data = await window.trek.invoke<{
-          places?: PlaceInputSearchResult[]
-          source?: string
-        }>('/map-locations', {
-          method: 'POST',
-          body: {
-            tripId,
-            query,
-            language: navigator.language,
-            sources: world.sources ?? ['google', 'nominatim'],
-            type: world.type,
-            strictTypeFiltering: world.strictTypeFiltering === true,
-          },
-        })
+        const data = trekPlaces
+          ? await window.trek.invoke<{
+              places?: PlaceInputSearchResult[]
+              source?: string
+            }>(`/trip-places?tripId=${encodeURIComponent(String(tripId))}&q=${encodeURIComponent(query)}`)
+          : await window.trek.invoke<{
+              places?: PlaceInputSearchResult[]
+              source?: string
+            }>('/map-locations', {
+              method: 'POST',
+              body: {
+                tripId,
+                query,
+                language: navigator.language,
+                sources: ['google', 'nominatim'],
+                type: airport ? 'airport' : undefined,
+                strictTypeFiltering: false,
+              },
+            })
         if (requestId === requestRef.current) {
           setRemoteResults(Array.isArray(data.places) ? data.places : [])
           setRemoteSource(typeof data.source === 'string' ? data.source : null)
@@ -146,7 +121,13 @@ export function PlaceInputSearch({
   }
 
   const pick = (place: PlaceInputSearchResult) => {
-    onChange(selectedValue === 'name' ? place.name || place.address : place.address || place.name)
+    onChange(
+      airport
+        ? `${place.city || place.name} (${place.iata || ''})`
+        : selectedValue === 'name'
+          ? place.name || place.address
+          : place.address || place.name,
+    )
     onPick?.(place)
     setOpen(false)
     setRemoteResults([])
@@ -170,7 +151,7 @@ export function PlaceInputSearch({
 
   return (
     <div ref={wrapperRef} className="relative">
-      {world !== false && world.type === 'airport' ? (
+      {airport ? (
         <Plane
           className="pointer-events-none absolute top-1/2 left-3 z-10 -translate-y-1/2 text-content-faint"
           size={14}
@@ -220,24 +201,26 @@ export function PlaceInputSearch({
           )}
           {results.map((place, index) => (
             <button
-              key={place.google_place_id || place.osm_id || `${place.name}-${index}`}
+              key={place.google_place_id || place.osm_id || place.iata || `${place.name}-${index}`}
               type="button"
               className={`flex w-full items-start gap-2 border-0 px-3 py-2 text-left font-inherit ${index === highlight ? 'bg-surface-hover' : 'bg-transparent'}`}
               onMouseEnter={() => setHighlight(index)}
               onClick={() => pick(place)}
             >
-              {world !== false && world.type === 'airport' ? (
+              {airport ? (
                 <Plane size={14} className="mt-0.5 shrink-0 text-content-faint" />
               ) : (
                 <MapPin size={14} className="mt-0.5 shrink-0 text-content-faint" />
               )}
               <span className="min-w-0">
                 <span className="block truncate text-sm font-medium text-content">
-                  {place.name || place.address}
+                  {airport ? `${place.city || place.name} (${place.iata || ''})` : place.name || place.address}
                   {place.source === 'trip' ? ' · Trip place' : ''}
                 </span>
-                {place.address && place.name !== place.address && (
-                  <span className="block truncate text-xs text-content-faint">{place.address}</span>
+                {(airport ? place.name : place.address && place.name !== place.address) && (
+                  <span className="block truncate text-xs text-content-faint">
+                    {airport ? `${place.name}${place.country ? ` · ${place.country}` : ''}` : place.address}
+                  </span>
                 )}
               </span>
             </button>

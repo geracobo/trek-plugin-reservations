@@ -1,5 +1,7 @@
 // World-place providers and the plugin-owned map-location search route.
 const { json } = require('./utils')
+const fs = require('node:fs')
+const path = require('node:path')
 
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search'
 const NOMINATIM_MIN_INTERVAL_MS = 1000
@@ -7,8 +9,45 @@ const NOMINATIM_CACHE_TTL_MS = 5 * 60 * 1000
 const NOMINATIM_CACHE_MAX_ENTRIES = 100
 const nominatimCache = new Map()
 let nominatimNextRequestAt = 0
+let airports = null
+let airportsByIata = null
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+function loadAirports() {
+  if (airports) return airports
+  const file = path.join(__dirname, 'assets', 'airports.json')
+  airports = JSON.parse(fs.readFileSync(file, 'utf8'))
+  airportsByIata = new Map(airports.map((airport) => [airport.iata, airport]))
+  return airports
+}
+
+function searchAirports(query, limit = 12) {
+  const all = loadAirports()
+  const trimmed = query.trim()
+  if (!trimmed) return []
+  const lower = trimmed.toLowerCase()
+  const upper = trimmed.toUpperCase()
+  if (trimmed.length === 3) {
+    const exact = airportsByIata.get(upper)
+    if (exact) return [exact]
+  }
+
+  const matches = []
+  for (const airport of all) {
+    let score = 0
+    if (airport.iata === upper) score = 100
+    else if (airport.icao === upper) score = 90
+    else if (airport.iata.startsWith(upper)) score = 70
+    else if (airport.city.toLowerCase().startsWith(lower)) score = 60
+    else if (airport.name.toLowerCase().startsWith(lower)) score = 50
+    else if (airport.city.toLowerCase().includes(lower)) score = 30
+    else if (airport.name.toLowerCase().includes(lower)) score = 20
+    if (score) matches.push({ airport, score })
+  }
+  matches.sort((left, right) => right.score - left.score || left.airport.iata.localeCompare(right.airport.iata))
+  return matches.slice(0, limit).map(({ airport }) => airport)
+}
 
 async function searchNominatim(query, language, type) {
   const cacheKey = `${query}\u0000${language}\u0000${type}`
@@ -81,16 +120,19 @@ async function mapLocationsHandler(req, ctx) {
   const query = typeof body.query === 'string' ? body.query.trim() : ''
   const language = typeof body.language === 'string' ? body.language.trim().slice(0, 20) : ''
   const type = typeof body.type === 'string' && /^[a-z_]{1,80}$/.test(body.type) ? body.type : ''
+  const isAirportSearch = type === 'airport'
   const strictTypeFiltering = body.strictTypeFiltering === true
   const sources = Array.isArray(body.sources)
     ? body.sources.filter((source) => source === 'google' || source === 'nominatim')
     : ['google', 'nominatim']
   if (!Number.isInteger(tripId) || tripId <= 0) return json(400, { error: 'tripId is required' })
-  if (query.length < 3) return json(400, { error: 'Search query must be at least 3 characters' })
+  if (query.length < (isAirportSearch ? 2 : 3))
+    return json(400, { error: `Search query must be at least ${isAirportSearch ? 2 : 3} characters` })
   if (query.length > 200) return json(400, { error: 'Search query is too long' })
 
   try {
     if (!(await ctx.trips.getById(tripId))) return json(404, { error: 'trip not found' })
+    if (isAirportSearch) return json(200, { places: searchAirports(query), source: 'airports' })
     const apiKey = typeof ctx.config.googlePlacesApiKey === 'string' ? ctx.config.googlePlacesApiKey.trim() : ''
     if (apiKey && sources.includes('google')) {
       return json(200, {
