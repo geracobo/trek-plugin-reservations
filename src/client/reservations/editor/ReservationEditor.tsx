@@ -3,7 +3,7 @@ import type { Accommodation, Day, Place, Reservation, ReservationFile } from '..
 import { getType } from '../model'
 import Modal from '../../trek-ui/Modal'
 import { reservationFormKind, type ReservationFormProps } from './types'
-import { MultiLegTransportForm } from './forms/MultiLegTransportForm'
+import { MultiLegTransportForm } from './forms/MultiEndpointTransportForm'
 import { PointToPointTransportForm } from './forms/PointToPointTransportForm'
 import { AutomatedTransitForm } from './forms/AutomatedTransitForm'
 import { AccommodationForm } from './forms/AccommodationForm'
