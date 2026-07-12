@@ -1,5 +1,5 @@
-import { AlertCircle, ExternalLink, FileText, MapPin, Pencil, Plane, StickyNote, Trash2 } from 'lucide-react'
-import type { Reservation, Trip } from './types'
+import { AlertCircle, ArrowLeft, ArrowRight, ArrowRightFromLine, ArrowRightToLine, CalendarDays, ExternalLink, FileText, Hotel, MapPin, Pencil, Plane, StickyNote, Trash2 } from 'lucide-react'
+import type { Accommodation, Day, Reservation, Trip } from './types'
 import {
   getType,
   metadataFields,
@@ -15,35 +15,105 @@ import {
 interface ReservationCardProps {
   reservation: Reservation
   trip: Trip | null
+  days: Day[]
+  accommodations: Accommodation[]
 }
 
-function Field({ label, value, mono = false, centered = false }: { label: string; value: string | null | undefined; mono?: boolean; centered?: boolean }) {
+function Field({ label, value, mono = false, centered = false, Icon }: { label: string; value: string | null | undefined; mono?: boolean; centered?: boolean; Icon?: typeof Hotel }) {
   if (!value) return null
   return (
     <div className="min-w-0">
       <div className={`mb-[5px] text-[10px] font-extrabold uppercase text-content-faint ${centered ? 'text-center' : ''}`}>{label}</div>
-      <div className={`min-h-[34px] rounded-[10px] bg-surface-muted px-2.5 py-2 text-[12.5px] font-semibold text-content [overflow-wrap:anywhere] ${mono ? 'font-mono' : ''} ${centered ? 'text-center' : ''}`}>{value}</div>
+      <div className={`min-h-[34px] rounded-[10px] bg-surface-muted px-2.5 py-2 text-[12.5px] font-semibold text-content [overflow-wrap:anywhere] ${mono ? 'font-mono' : ''} ${centered ? 'text-center' : ''}`}>{Icon ? <span className="flex items-center gap-1.5"><Icon className="shrink-0 text-content-faint" size={14} /><span>{value}</span></span> : value}</div>
     </div>
   )
 }
 
-function daySummary(reservation: Reservation, trip: Trip | null) {
-  const startValue = reservation.reservation_time?.split(/[T ]/)[0]
+type BookingTripRelation = 'before' | 'ends-during' | 'spans-trip' | 'starts-during' | 'after' | null
+
+function bookingTripRelation(reservation: Reservation, trip: Trip | null): BookingTripRelation {
+  if (TRANSPORT_TYPES.has(reservation.type ?? '') || reservation.type === 'hotel') return null
+  const start = reservation.reservation_time?.split(/[T ]/)[0]
+  const end = reservation.reservation_end_time?.split(/[T ]/)[0] || start
+  const tripStart = trip?.start_date?.split(/[T ]/)[0]
+  const tripEnd = trip?.end_date?.split(/[T ]/)[0]
+  if (!start || !end || !tripStart || !tripEnd) return null
+
+  // Open-date bookings can sit fully outside, overlap one boundary, or span the
+  // entire itinerary. Check the full-span case before either one-sided overlap.
+  const fullyBeforeTrip = end < tripStart
+  const endsDuringTrip = start < tripStart
+  const startsDuringTrip = end > tripEnd
+  const fullyAfterTrip = start > tripEnd
+
+  if (fullyBeforeTrip) return 'before'
+  if (fullyAfterTrip) return 'after'
+  if (endsDuringTrip && startsDuringTrip) return 'spans-trip'
+  if (endsDuringTrip) return 'ends-during'
+  if (startsDuringTrip) return 'starts-during'
+  return null
+}
+
+function daySummary(reservation: Reservation, trip: Trip | null, days: Day[], accommodations: Accommodation[]) {
+  const reservationDate = reservation.reservation_time?.split(/[T ]/)[0]
+  const reservationEndDate = reservation.reservation_end_time?.split(/[T ]/)[0] || reservationDate
+  const relation = bookingTripRelation(reservation, trip)
+  const shortDate = (value: string) => new Date(`${value}T00:00:00Z`).toLocaleDateString(undefined, {
+    month: 'short', day: 'numeric', timeZone: 'UTC',
+  })
+  // Booking types can be assigned to the nearest trip day by the host even when
+  // their actual date is outside the itinerary. Show their actual relationship.
+  if (relation) {
+    const relatedDate = relation === 'ends-during' ? reservationEndDate
+      : relation === 'starts-during' ? reservationDate
+        : null
+    const relatedDay = relatedDate ? days.find((day) => day.date === relatedDate) : undefined
+    const tripStart = trip?.start_date?.split(/[T ]/)[0]
+    const relatedDayNumber = relatedDate && tripStart
+      ? Math.floor((Date.parse(`${relatedDate}T00:00:00Z`) - Date.parse(`${tripStart}T00:00:00Z`)) / 86_400_000) + 1
+      : null
+
+    return {
+      day: relatedDay?.title || (relatedDayNumber ? `Day ${relatedDayNumber}` : ''),
+      date: relatedDate ? shortDate(relatedDate) : '',
+      endDay: null,
+      endDate: null,
+      outsideTrip: relation,
+    }
+  }
+
+  const accommodation = reservation.type === 'hotel' && reservation.accommodation_id
+    ? accommodations.find((item) => item.id === reservation.accommodation_id)
+    : undefined
+  const startDayId = accommodation?.start_day_id || reservation.day_id
+  const endDayId = accommodation?.end_day_id || reservation.end_day_id
+  const startDay = startDayId ? days.find((day) => day.id === startDayId) : undefined
+  const linkedEndDay = endDayId ? days.find((day) => day.id === endDayId) : undefined
+  if (startDay?.date) {
+    return {
+      day: startDay.title || `Day ${startDay.day_number || ''}`.trim(),
+      date: shortDate(startDay.date),
+      endDay: linkedEndDay?.id !== startDay.id ? (linkedEndDay?.title || (linkedEndDay ? `Day ${linkedEndDay.day_number || ''}`.trim() : null)) : null,
+      endDate: linkedEndDay?.id !== startDay.id && linkedEndDay?.date ? shortDate(linkedEndDay.date) : null,
+      outsideTrip: null,
+    }
+  }
+
+  const startValue = reservationDate
   if (!startValue) return null
 
   const startDate = new Date(`${startValue}T00:00:00Z`)
   if (Number.isNaN(startDate.getTime())) return null
 
-  const shortDate = (date: Date) => date.toLocaleDateString(undefined, {
+  const formatDate = (date: Date) => date.toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
     timeZone: 'UTC',
   })
-  const tripStart = trip?.start_date?.split(/[T ]/)[0]
   const endValue = reservation.reservation_end_time?.split(/[T ]/)[0]
   const endDate = endValue ? new Date(`${endValue}T00:00:00Z`) : null
   const validEndDate = endDate && !Number.isNaN(endDate.getTime()) ? endDate : null
-  if (!tripStart) return { day: 'Day', date: shortDate(startDate), endDay: null, endDate: validEndDate ? shortDate(validEndDate) : null }
+  if (!tripStart) return { day: 'Day', date: formatDate(startDate), endDay: null, endDate: validEndDate ? formatDate(validEndDate) : null, outsideTrip: null }
 
   const start = new Date(`${tripStart}T00:00:00Z`)
   const dayNumber = (date: Date) => Math.floor((date.getTime() - start.getTime()) / 86_400_000) + 1
@@ -51,14 +121,41 @@ function daySummary(reservation: Reservation, trip: Trip | null) {
   const endDay = validEndDate ? dayNumber(validEndDate) : null
   return {
     day: day > 0 ? `Day ${day}` : 'Day',
-    date: shortDate(startDate),
+    date: formatDate(startDate),
     endDay: endDay && endDay > 0 ? `Day ${endDay}` : null,
-    endDate: validEndDate ? shortDate(validEndDate) : null,
+    endDate: validEndDate ? formatDate(validEndDate) : null,
+    outsideTrip: null,
   }
 }
 
-function FlightDetails({ reservation, trip }: { reservation: Reservation; trip: Trip | null }) {
-  const summary = daySummary(reservation, trip)
+function TripDaysValue({ summary, fallbackDay }: { summary: ReturnType<typeof daySummary>; fallbackDay?: string }) {
+  if (!summary) return <strong>{fallbackDay || '—'}</strong>
+
+  if (!summary.outsideTrip) {
+    return <><strong>{fallbackDay || summary.day || '—'}</strong><span>{summary.date}</span></>
+  }
+
+  const endsDuringTrip = summary.outsideTrip === 'ends-during'
+  const startsDuringTrip = summary.outsideTrip === 'starts-during'
+  const spansTrip = summary.outsideTrip === 'spans-trip'
+  const label = summary.outsideTrip === 'before' ? 'Before trip'
+    : summary.outsideTrip === 'after' ? 'After trip'
+      : spansTrip ? 'Spans entire trip'
+      : endsDuringTrip ? 'Ends during trip'
+        : 'Starts during trip'
+
+  return (
+    <span className="inline-flex flex-wrap items-center justify-center gap-1.5 font-semibold">
+      <CalendarDays size={14} />
+      {spansTrip ? <><ArrowLeft size={14} /><ArrowRight size={14} /></> : endsDuringTrip ? <ArrowRightToLine size={14} /> : startsDuringTrip ? <ArrowRightFromLine size={14} /> : summary.outsideTrip === 'before' ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
+      <span>{label}</span>
+      {(endsDuringTrip || startsDuringTrip) && summary.day ? <><span className="text-content-muted">·</span><strong>{summary.day}</strong><span>{summary.date}</span></> : null}
+    </span>
+  )
+}
+
+function FlightDetails({ reservation, trip, days, accommodations }: { reservation: Reservation; trip: Trip | null; days: Day[]; accommodations: Accommodation[] }) {
+  const summary = daySummary(reservation, trip, days, accommodations)
   const metadata = normalizeMetadata(reservation)
   const endpointRoute = reservationRoute(reservation)
   // TODO: Prefer joined endpoint rows when trips.getReservations() exposes them.
@@ -70,10 +167,9 @@ function FlightDetails({ reservation, trip }: { reservation: Reservation; trip: 
   return (
     <>
       <div className="min-w-0">
-        <div className="mb-[5px] text-center text-[10px] font-extrabold uppercase text-content-faint">Date</div>
+        <div className="mb-[5px] text-center text-[10px] font-extrabold uppercase text-content-faint">Trip days</div>
         <div className="flex min-h-9 items-center justify-center gap-3 rounded-[10px] bg-surface-muted px-3 py-2 text-xs text-content">
-          <strong>{typeof metadata.day_title === 'string' ? metadata.day_title : summary?.day || '—'}</strong>
-          {summary ? <span>{summary.date}</span> : null}
+          <TripDaysValue summary={summary} fallbackDay={typeof metadata.day_title === 'string' ? metadata.day_title : undefined} />
           {summary?.endDay && summary.endDate ? (
             <>
               <span className="text-content-muted">–</span>
@@ -105,7 +201,7 @@ function FlightDetails({ reservation, trip }: { reservation: Reservation; trip: 
   )
 }
 
-export function ReservationCard({ reservation, trip }: ReservationCardProps) {
+export function ReservationCard({ reservation, trip, days, accommodations }: ReservationCardProps) {
   const typeInfo = getType(reservation.type)
   const TypeIcon = typeInfo.Icon
   const status = reservationStatus(reservation)
@@ -113,7 +209,7 @@ export function ReservationCard({ reservation, trip }: ReservationCardProps) {
   const route = reservationRoute(reservation)
   const url = reservation.url || reservation.booking_url
   const fields = metadataFields(reservation).slice(0, 8)
-  const summary = daySummary(reservation, trip)
+  const summary = daySummary(reservation, trip, days, accommodations)
   const isFlight = reservation.type === 'flight'
   const isAccommodation = reservation.type === 'hotel'
   // Transport rows can reference a day without exposing that joined day's
@@ -166,13 +262,12 @@ export function ReservationCard({ reservation, trip }: ReservationCardProps) {
 
       <div className="flex flex-1 flex-col gap-3 p-3.5">
         {isFlight ? (
-          <FlightDetails reservation={reservation} trip={trip} />
+          <FlightDetails reservation={reservation} trip={trip} days={days} accommodations={accommodations} />
         ) : visibleSummary ? (
           <div className="min-w-0">
-            <div className="mb-[5px] text-[10px] font-extrabold uppercase text-content-faint">Date</div>
+            <div className="mb-[5px] text-center text-[10px] font-extrabold uppercase text-content-faint">Trip days</div>
             <div className="flex min-h-9 items-center justify-center gap-3 rounded-[10px] bg-surface-muted px-3 py-2 text-xs text-content">
-              <strong>{visibleSummary.day}</strong>
-              <span>{visibleSummary.date}</span>
+              <TripDaysValue summary={visibleSummary} />
               {visibleSummary.endDay && visibleSummary.endDate ? (
                 <>
                   <span className="text-content-muted">–</span>
@@ -189,7 +284,7 @@ export function ReservationCard({ reservation, trip }: ReservationCardProps) {
           <Field label="Time" value={reservationTimeRange(reservation)} centered />
           <Field label="Confirmation code" value={reservation.confirmation_number} mono />
           {fields.map((field) => (
-            <Field key={`${field.label}-${field.value}`} label={field.label} value={field.value} />
+            <Field key={`${field.label}-${field.value}`} label={field.label} value={field.value} Icon={field.label === 'Accommodation' ? Hotel : undefined} />
           ))}
         </div> : null}
 

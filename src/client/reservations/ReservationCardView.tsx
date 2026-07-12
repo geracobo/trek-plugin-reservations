@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
-import type { Reservation, Trip } from './types'
+import type { Accommodation, Day, Reservation, Trip } from './types'
 import { reservationStatus } from './model'
 import { ReservationCard } from './ReservationCard'
 
@@ -20,9 +20,11 @@ function groupReservations(reservations: Reservation[]): ReservationGroup[] {
 interface ReservationCardViewProps {
   reservations: Reservation[]
   trip: Trip | null
+  days: Day[]
+  accommodations: Accommodation[]
 }
 
-export function ReservationCardView({ reservations, trip }: ReservationCardViewProps) {
+export function ReservationCardView({ reservations, trip, days, accommodations }: ReservationCardViewProps) {
   const groups = groupReservations(reservations)
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set())
 
@@ -47,7 +49,7 @@ export function ReservationCardView({ reservations, trip }: ReservationCardViewP
         {!collapsed ? (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(max(33.33%_-_14px,340px),1fr))] items-stretch gap-3.5">
             {group.reservations.map((reservation) => (
-              <ReservationCard key={reservation.id} reservation={reservation} trip={trip} />
+              <ReservationCard key={reservation.id} reservation={reservation} trip={trip} days={days} accommodations={accommodations} />
             ))}
           </div>
         ) : null}

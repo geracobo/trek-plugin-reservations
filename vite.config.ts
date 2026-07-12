@@ -10,7 +10,7 @@ function injectTrekUi() {
 
   return {
     name: 'inject-trek-ui',
-    closeBundle() {
+    writeBundle() {
       fs.writeFileSync(htmlPath, injectTrekUiMarkup(fs.readFileSync(htmlPath, 'utf8')))
     },
   }
@@ -21,7 +21,7 @@ function copyPluginFiles() {
 
   return {
     name: 'copy-plugin-files',
-    closeBundle() {
+    writeBundle() {
       for (const file of ['trek-plugin.json', 'README.md', 'package.json']) {
         fs.copyFileSync(path.resolve(file), path.join(buildDir, file))
       }

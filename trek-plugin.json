@@ -11,7 +11,10 @@
   "nativeModules": false,
   "permissions": [
     "db:read:trips",
-    "db:read:files"
+    "db:read:files",
+    "db:write:reservations",
+    "db:write:accommodations",
+    "db:write:files"
   ],
   "capabilities": {
     "tripPage": {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { ReservationsResponse, Reservation, StatusFilter, Trip, ViewMode } from './types'
+import type { Accommodation, Day, Place, ReservationFile, ReservationsResponse, Reservation, StatusFilter, Trip, ViewMode } from './types'
 import { filterAndSortReservations, getType, reservationRoute, reservationStatus, reservationTitle, TRANSPORT_TYPES, TYPE_OPTIONS } from './model'
 import { ReservationCardView } from './ReservationCardView'
 import { ReservationCalendarView } from './ReservationCalendarView'
@@ -8,10 +8,14 @@ import type { TableColumnKey } from './ReservationTableView'
 import { ReservationHeader } from './ReservationHeader'
 import type { ReservationCategory } from './ReservationHeader'
 
-interface LoadState {
+interface ReservationsPageState {
   tripId: number | null
   trip: Trip | null
   reservations: Reservation[]
+  places: Place[]
+  days: Day[]
+  accommodations: Accommodation[]
+  files: ReservationFile[]
   loading: boolean
   error: string | null
 }
@@ -49,10 +53,14 @@ function reservationSearchText(reservation: Reservation) {
 }
 
 export function ReservationsPage() {
-  const [loadState, setLoadState] = useState<LoadState>({
+  const [pageState, setPageState] = useState<ReservationsPageState>({
     tripId: null,
     trip: null,
     reservations: [],
+    places: [],
+    days: [],
+    accommodations: [],
+    files: [],
     loading: true,
     error: null,
   })
@@ -66,11 +74,11 @@ export function ReservationsPage() {
     return window.trek.onContext((ctx) => {
       const tripId = ctx.tripId ? Number(ctx.tripId) : null
       if (!tripId) {
-        setLoadState({ tripId: null, trip: null, reservations: [], loading: false, error: 'Open this plugin from a trip page so TREK can provide a trip id.' })
+        setPageState({ tripId: null, trip: null, reservations: [], places: [], days: [], accommodations: [], files: [], loading: false, error: 'Open this plugin from a trip page so TREK can provide a trip id.' })
         return
       }
 
-      setLoadState((previous) => {
+      setPageState((previous) => {
         if (previous.tripId === tripId && !previous.error) return previous
         return { ...previous, tripId, loading: true, error: null }
       })
@@ -78,19 +86,27 @@ export function ReservationsPage() {
       window.trek
         .invoke<ReservationsResponse>(`/reservations?tripId=${encodeURIComponent(tripId)}`)
         .then((data) => {
-          setLoadState({
+          setPageState({
             tripId,
             trip: data.trip,
             reservations: Array.isArray(data.reservations) ? data.reservations : [],
+            places: Array.isArray(data.places) ? data.places : [],
+            days: Array.isArray(data.days) ? data.days : [],
+            accommodations: Array.isArray(data.accommodations) ? data.accommodations : [],
+            files: Array.isArray(data.files) ? data.files : [],
             loading: false,
             error: null,
           })
         })
         .catch((error: unknown) => {
-          setLoadState({
+          setPageState({
             tripId,
             trip: null,
             reservations: [],
+            places: [],
+            days: [],
+            accommodations: [],
+            files: [],
             loading: false,
             error: error instanceof Error ? error.message : String(error),
           })
@@ -98,23 +114,23 @@ export function ReservationsPage() {
     })
   }, [])
 
-  const typeCounts = useMemo(() => countByType(loadState.reservations), [loadState.reservations])
-  const categoryCounts = useMemo(() => loadState.reservations.reduce<Record<Exclude<ReservationCategory, 'all'>, number>>((counts, reservation) => {
+  const typeCounts = useMemo(() => countByType(pageState.reservations), [pageState.reservations])
+  const categoryCounts = useMemo(() => pageState.reservations.reduce<Record<Exclude<ReservationCategory, 'all'>, number>>((counts, reservation) => {
     const key = reservationCategory(reservation)
     counts[key] += 1
     return counts
-  }, { transportation: 0, accommodation: 0, booking: 0 }), [loadState.reservations])
+  }, { transportation: 0, accommodation: 0, booking: 0 }), [pageState.reservations])
   const secondaryTypes = useMemo(() => category === 'all'
     ? []
     : TYPE_OPTIONS.filter((option) => typeCounts[option.value] && reservationCategory({ id: 0, type: option.value }) === category), [category, typeCounts])
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
     const inCategory = category === 'all'
-      ? loadState.reservations
-      : loadState.reservations.filter((reservation) => reservationCategory(reservation) === category)
+      ? pageState.reservations
+      : pageState.reservations.filter((reservation) => reservationCategory(reservation) === category)
     return filterAndSortReservations(inCategory, selectedTypes, statusFilter)
       .filter((reservation) => !query || reservationSearchText(reservation).includes(query))
-  }, [loadState.reservations, category, selectedTypes, statusFilter, search])
+  }, [pageState.reservations, category, selectedTypes, statusFilter, search])
 
   const toggleType = (type: string) => {
     setSelectedTypes((current) => {
@@ -141,7 +157,7 @@ export function ReservationsPage() {
   return (
     <main className="h-full min-h-0 overflow-y-auto overscroll-contain px-5 pt-3.5 pb-[72px] max-[720px]:p-4">
       <ReservationHeader
-        reservationCount={loadState.reservations.length}
+        reservationCount={pageState.reservations.length}
         filteredCount={filtered.length}
         category={category}
         categoryCounts={categoryCounts}
@@ -160,17 +176,17 @@ export function ReservationsPage() {
         onClearFilters={clearFilters}
       />
 
-      {loadState.loading ? (
+      {pageState.loading ? (
         <div className="trek-card px-5 py-14 text-center [&_h2]:mb-1.5 [&_h2]:text-[15px] [&_p]:mx-auto [&_p]:max-w-[520px] [&_p]:text-[13px] [&_p]:leading-[1.45] [&_p]:text-content-muted">
           <h2>Loading</h2>
           <p>Reading reservations for this trip.</p>
         </div>
-      ) : loadState.error ? (
+      ) : pageState.error ? (
         <div className="trek-card px-5 py-14 text-center [&_h2]:mb-1.5 [&_h2]:text-[15px] [&_p]:mx-auto [&_p]:max-w-[520px] [&_p]:text-[13px] [&_p]:leading-[1.45] [&_p]:text-content-muted">
           <h2 className="text-danger">Unable to load reservations</h2>
-          <p>{loadState.error}</p>
+          <p>{pageState.error}</p>
         </div>
-      ) : loadState.reservations.length === 0 ? (
+      ) : pageState.reservations.length === 0 ? (
         <div className="trek-card px-5 py-14 text-center [&_h2]:mb-1.5 [&_h2]:text-[15px] [&_p]:mx-auto [&_p]:max-w-[520px] [&_p]:text-[13px] [&_p]:leading-[1.45] [&_p]:text-content-muted">
           <h2>No reservations yet</h2>
           <p>Add transportation or booking reservations in the TREK planner and they will appear here.</p>
@@ -183,9 +199,9 @@ export function ReservationsPage() {
       ) : viewMode === 'table' ? (
         <ReservationTableView reservations={filtered} visibleColumns={defaultTableColumns} />
       ) : viewMode === 'calendar' ? (
-        <ReservationCalendarView reservations={filtered} trip={loadState.trip} />
+        <ReservationCalendarView reservations={filtered} trip={pageState.trip} />
       ) : (
-        <ReservationCardView reservations={filtered} trip={loadState.trip} />
+        <ReservationCardView reservations={filtered} trip={pageState.trip} days={pageState.days} accommodations={pageState.accommodations} />
       )}
     </main>
   )
