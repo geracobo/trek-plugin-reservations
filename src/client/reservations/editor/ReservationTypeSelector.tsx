@@ -67,7 +67,7 @@ export function ReservationTypeSelector({
             key={categoryValue}
             type="button"
             onClick={() => selectCategory(categoryValue)}
-            className="flex min-h-20 items-center gap-3 rounded-xl border border-edge bg-surface-card px-3.5 text-left text-content transition-colors hover:bg-surface-hover"
+            className="flex min-h-20 cursor-pointer items-center gap-3 rounded-xl border border-edge bg-surface-card px-3.5 text-left text-content transition-colors hover:bg-surface-hover"
           >
             <span className="grid size-9 place-items-center rounded-lg bg-surface-muted text-content-muted">
               <Icon size={18} />
@@ -86,7 +86,7 @@ export function ReservationTypeSelector({
           <button
             type="button"
             onClick={() => setCategory(null)}
-            className="mr-1 grid size-7 place-items-center rounded-lg text-content-muted hover:bg-surface-hover hover:text-content"
+            className="mr-1 grid size-7 cursor-pointer place-items-center rounded-lg text-content-muted hover:bg-surface-hover hover:text-content"
             aria-label="Choose reservation category"
           >
             <ArrowLeft size={16} />
@@ -104,8 +104,8 @@ export function ReservationTypeSelector({
             onClick={() => onChange(type)}
             className={
               value === type
-                ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]'
-                : 'bg-surface-card text-content-muted'
+                ? 'cursor-pointer bg-[var(--text-primary)] text-[var(--bg-primary)]'
+                : 'cursor-pointer bg-surface-card text-content-muted'
             }
             style={{
               display: 'flex',
@@ -130,7 +130,7 @@ export function ReservationTypeSelector({
             <button
               type="button"
               onClick={() => onChange('transit')}
-              className={`inline-flex min-h-8 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold ${value === 'transit' ? 'border-[#7c3aed] bg-[rgba(124,58,237,0.16)] text-[#7c3aed]' : 'border-[rgba(124,58,237,0.25)] bg-[rgba(124,58,237,0.08)] text-content'}`}
+              className={`inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold ${value === 'transit' ? 'border-[#7c3aed] bg-[rgba(124,58,237,0.16)] text-[#7c3aed]' : 'border-[rgba(124,58,237,0.25)] bg-[rgba(124,58,237,0.08)] text-content'}`}
             >
               <TramFront size={14} className="text-[#7c3aed]" />
               Automated transit
