@@ -12,6 +12,7 @@ const {
 } = require('./reservations')
 const { mapLocationsHandler } = require('./map-locations')
 const { tripPlacesSearchHandler } = require('./trip-places')
+const { transitSearchHandler, transitPlanHandler } = require('./transit')
 
 module.exports = definePlugin({
   async onLoad(ctx) {
@@ -28,5 +29,7 @@ module.exports = definePlugin({
     { method: 'DELETE', path: '/files/link', auth: true, handler: unlinkFileHandler },
     { method: 'POST', path: '/map-locations', auth: true, handler: mapLocationsHandler },
     { method: 'GET', path: '/trip-places', auth: true, handler: tripPlacesSearchHandler },
+    { method: 'POST', path: '/transit/search', auth: true, handler: transitSearchHandler },
+    { method: 'POST', path: '/transit/plan', auth: true, handler: transitPlanHandler },
   ],
 })

@@ -19,9 +19,10 @@
     "db:write:files",
     "db:write:costs",
     "http:outbound:nominatim.openstreetmap.org",
-    "http:outbound:places.googleapis.com"
+    "http:outbound:places.googleapis.com",
+    "http:outbound:api.transitous.org"
   ],
-  "egress": ["nominatim.openstreetmap.org", "places.googleapis.com"],
+  "egress": ["nominatim.openstreetmap.org", "places.googleapis.com", "api.transitous.org"],
   "settings": [
     {
       "key": "googlePlacesApiKey",

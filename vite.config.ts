@@ -30,6 +30,12 @@ function copyPluginFiles() {
         if (fs.existsSync(source)) fs.copyFileSync(source, path.join(buildDir, file))
       }
       fs.cpSync(path.resolve('src/server'), path.join(buildDir, 'server'), { recursive: true })
+      // Server modules are loaded under TREK's Node permission sandbox, so a
+      // runtime `require('tz-lookup')` cannot resolve into host node_modules.
+      // Ship its self-contained lookup table beside the plugin server instead.
+      const vendorDir = path.join(buildDir, 'server', 'vendor')
+      fs.mkdirSync(vendorDir, { recursive: true })
+      fs.copyFileSync(path.resolve('node_modules/tz-lookup/tz.js'), path.join(vendorDir, 'tz-lookup.js'))
     },
   }
 }

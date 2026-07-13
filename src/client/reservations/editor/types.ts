@@ -17,6 +17,9 @@ export interface ReservationFormProps {
   accommodations: Accommodation[]
   files: ReservationFile[]
   onDraftChange?: (draft: ReservationDraft | null) => void
+  /** Automated flows can persist a chosen external result directly. */
+  onSubmitDraft?: (draft: ReservationDraft) => Promise<void>
+  onAutomatedTransitPlanningChange?: (planning: boolean) => void
 }
 
 /** A form emits a host-ready reservation payload; the editor owns persistence. */
