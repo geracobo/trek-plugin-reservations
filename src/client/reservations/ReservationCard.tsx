@@ -5,8 +5,10 @@ import {
   ArrowRightFromLine,
   ArrowRightToLine,
   CalendarDays,
+  ChevronRight,
   ExternalLink,
   FileText,
+  Footprints,
   Hotel,
   MapPin,
   Pencil,
@@ -242,6 +244,23 @@ function TripDaysValue({ summary, fallbackDay }: { summary: ReturnType<typeof da
   )
 }
 
+function RouteField({ route, Icon }: { route: string[]; Icon: typeof Plane }) {
+  if (route.length < 2) return null
+  return (
+    <div className="min-w-0">
+      <div className="mb-[5px] text-[10px] font-extrabold uppercase text-content-faint">Route</div>
+      <div className="flex flex-wrap items-center justify-center gap-2 rounded-[10px] bg-surface-muted px-3 py-2 text-[12.5px] text-content">
+        {route.map((name, index) => (
+          <span className="inline-flex min-w-0 items-center gap-2 font-semibold" key={`${name}-${index}`}>
+            {index > 0 ? <Icon className="shrink-0 text-[var(--reservation-color)]" size={14} /> : null}
+            <span className="truncate">{name}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function FlightDetails({
   reservation,
   trip,
@@ -293,17 +312,64 @@ function FlightDetails({
         <Field label="Booking code" value={reservation.confirmation_number || '—'} mono />
       </div>
 
-      {route.length > 0 ? (
-        <div className="flex flex-wrap items-center justify-center gap-2 rounded-[10px] bg-surface-muted px-3 py-2 text-[12.5px] text-content">
-          {route.map((name, index) => (
-            <span className="inline-flex min-w-0 items-center gap-2 font-semibold" key={`${name}-${index}`}>
-              {index > 0 ? <Plane className="shrink-0 text-[var(--reservation-color)]" size={14} /> : null}
-              <span className="truncate">{name}</span>
-            </span>
-          ))}
-        </div>
-      ) : null}
+      <RouteField route={route} Icon={Plane} />
     </>
+  )
+}
+
+type TransitLeg = {
+  mode?: string
+  line?: string | null
+  line_color?: string | null
+  line_text_color?: string | null
+  duration?: number
+}
+
+function automatedTransitLegs(reservation: Reservation): TransitLeg[] {
+  const metadata = normalizeMetadata(reservation)
+  const transit = metadata.transit
+  const transitMetadata = transit && typeof transit === 'object' ? (transit as Record<string, unknown>) : null
+  const rawLegs = Array.isArray(transitMetadata?.legs)
+    ? transitMetadata.legs
+    : Array.isArray(metadata.legs)
+      ? metadata.legs
+      : []
+  return rawLegs.filter((leg): leg is TransitLeg => Boolean(leg) && typeof leg === 'object')
+}
+
+function TransitLegChips({ legs }: { legs: TransitLeg[] }) {
+  // This follows TREK's compact route language: walks carry their duration;
+  // service legs use their operator-supplied line colors and names.
+  const shownLegs = legs.filter((leg) => leg.mode !== 'WALK' || (leg.duration || 0) >= 60)
+  if (shownLegs.length === 0) return null
+
+  return (
+    <div className="min-w-0">
+      <div className="mb-[5px] text-[10px] font-extrabold uppercase text-content-faint">Route</div>
+      <div className="flex min-h-[34px] flex-wrap items-center justify-center gap-1.5 rounded-[10px] bg-surface-muted px-2.5 py-2 text-[11px]">
+        {shownLegs.map((leg, index) => (
+          <span className="inline-flex items-center gap-1.5" key={`${leg.mode}-${leg.line}-${index}`}>
+            {index > 0 ? <ChevronRight className="text-content-faint" size={12} /> : null}
+            {leg.mode === 'WALK' ? (
+              <span className="inline-flex items-center gap-0.5 font-semibold text-content-faint">
+                <Footprints size={13} />
+                {Math.round((leg.duration || 0) / 60)}
+              </span>
+            ) : (
+              <span
+                className="rounded-[5px] px-1.5 py-0.5 text-[10.5px] font-bold leading-none"
+                style={{
+                  background: leg.line_color || 'var(--bg-tertiary)',
+                  color: leg.line_color ? leg.line_text_color || '#fff' : 'var(--text-primary)',
+                }}
+              >
+                {leg.line || leg.mode}
+              </span>
+            )}
+          </span>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -318,6 +384,10 @@ export function ReservationCard({ reservation, trip, days, accommodations, onEdi
   const summary = daySummary(reservation, trip, days, accommodations)
   const isFlight = reservation.type === 'flight'
   const isAccommodation = reservation.type === 'hotel'
+  // TREK renders route-planned transit journeys with their own violet card
+  // treatment, rather than the normal confirmed/pending transport styling.
+  const isAutomatedTransit = reservation.type === 'transit'
+  const transitLegs = isAutomatedTransit ? automatedTransitLegs(reservation) : []
   // Transport rows can reference a day without exposing that joined day's
   // number/date through the plugin API. Keep the layout visible without
   // inventing trip data until trips.getReservations() includes the join.
@@ -333,11 +403,11 @@ export function ReservationCard({ reservation, trip, days, accommodations, onEdi
   const detailFields = fields.filter((field) => field.label !== 'Location')
   return (
     <article
-      className={`trek-card flex min-w-0 flex-col overflow-hidden rounded-xl border p-0 transition-shadow duration-150 hover:shadow-md ${confirmed ? 'border-success/25' : 'border-warning/25'}`}
+      className={`trek-card flex min-w-0 flex-col overflow-hidden rounded-xl border p-0 transition-shadow duration-150 hover:shadow-md ${isAutomatedTransit ? 'border-[rgba(124,58,237,0.22)]' : confirmed ? 'border-success/25' : 'border-warning/25'}`}
       style={{ '--reservation-color': typeInfo.color } as React.CSSProperties}
     >
       <header
-        className={`flex flex-nowrap items-center justify-between gap-2 px-3.5 py-3 ${confirmed ? 'bg-[color-mix(in_oklch,var(--success)_6%,transparent)]' : 'bg-[color-mix(in_oklch,var(--warning)_6%,transparent)]'}`}
+        className={`flex flex-nowrap items-center justify-between gap-2 px-3.5 py-3 ${isAutomatedTransit ? 'bg-[rgba(124,58,237,0.06)]' : confirmed ? 'bg-[color-mix(in_oklch,var(--success)_6%,transparent)]' : 'bg-[color-mix(in_oklch,var(--warning)_6%,transparent)]'}`}
       >
         <div className="flex min-w-0 flex-[0_1_auto] flex-nowrap items-center gap-2 overflow-hidden">
           <span
@@ -346,7 +416,9 @@ export function ReservationCard({ reservation, trip, days, accommodations, onEdi
             <span className="size-[7px] shrink-0 rounded-full bg-current" />
             {confirmed ? 'Confirmed' : 'Pending'}
           </span>
-          <span className="trek-chip min-h-[22px] min-w-0 flex-[0_1_auto] gap-[5px] overflow-hidden text-ellipsis rounded-md bg-surface-secondary px-2 py-[3px] text-content-muted">
+          <span
+            className={`trek-chip min-h-[22px] min-w-0 flex-[0_1_auto] gap-[5px] overflow-hidden text-ellipsis rounded-md px-2 py-[3px] text-content-muted ${isAutomatedTransit ? 'bg-[rgba(124,58,237,0.1)]' : 'bg-surface-secondary'}`}
+          >
             <TypeIcon className="shrink-0 text-[var(--reservation-color)]" size={12} />
             {typeInfo.label}
           </span>
@@ -428,16 +500,9 @@ export function ReservationCard({ reservation, trip, days, accommodations, onEdi
 
         {locationField ? <Field label={locationField.label} value={locationField.value} Icon={MapPin} /> : null}
 
-        {!isFlight && route.length >= 2 ? (
-          <div className="flex flex-wrap items-center justify-center gap-2 rounded-[10px] bg-surface-muted px-3 py-2 text-[12.5px] text-content">
-            {route.map((name, index) => (
-              <span className="inline-flex min-w-0 items-center gap-2 font-semibold" key={`${name}-${index}`}>
-                {index > 0 ? <TypeIcon className="shrink-0 text-[var(--reservation-color)]" size={14} /> : null}
-                <span className="truncate">{name}</span>
-              </span>
-            ))}
-          </div>
-        ) : null}
+        {isAutomatedTransit && transitLegs.length > 0 ? <TransitLegChips legs={transitLegs} /> : null}
+
+        {!isFlight && !isAutomatedTransit ? <RouteField route={route} Icon={TypeIcon} /> : null}
 
         {attachedFiles.length > 0 ? (
           <div>
