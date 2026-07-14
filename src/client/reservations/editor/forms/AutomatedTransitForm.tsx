@@ -14,7 +14,6 @@ import {
   TramFront,
   Train,
   TrainFront,
-  X,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import tzLookup from 'tz-lookup'
@@ -67,109 +66,115 @@ function TransitLocationInput({
   value,
   onChange,
   label,
+  quickPicks,
+  near,
 }: {
   tripId: number | null
   value: TransitPlace | null
   onChange: (place: TransitPlace | null) => void
   label: string
+  quickPicks: TransitPlace[]
+  near: string | null
 }) {
-  const [text, setText] = useState(value?.name || '')
+  const [text, setText] = useState('')
   const [results, setResults] = useState<TransitPlace[]>([])
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const request = useRef(0)
+  const root = useRef<HTMLDivElement>(null)
 
-  useEffect(() => setText(value?.name || ''), [value?.name])
   useEffect(
     () => () => {
       if (timer.current) clearTimeout(timer.current)
     },
     [],
   )
+  useEffect(() => {
+    const close = (event: MouseEvent) => {
+      if (!root.current?.contains(event.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [])
   const search = (query: string) => {
     if (timer.current) clearTimeout(timer.current)
     if (!tripId || query.trim().length < 2) return setResults([])
     const id = ++request.current
     timer.current = setTimeout(async () => {
-      setLoading(true)
       try {
         const data = await window.trek.invoke<{ places?: TransitPlace[] }>('/transit/search', {
           method: 'POST',
-          body: { tripId, query },
+          body: { tripId, query, language: navigator.language, near: near || undefined },
         })
         if (id === request.current) setResults(Array.isArray(data.places) ? data.places : [])
       } catch {
         if (id === request.current) setResults([])
-      } finally {
-        if (id === request.current) setLoading(false)
       }
-    }, 320)
+    }, 300)
   }
+  const display = value ? value.name : text
   return (
-    <Field label={label}>
-      <div className="relative">
-        <MapPin
-          className="pointer-events-none absolute top-1/2 left-3 z-10 -translate-y-1/2 text-content-faint"
-          size={14}
-        />
+    <div ref={root} className="relative min-w-0 flex-1">
+      <label className="mb-[5px] block text-[11px] font-semibold tracking-[0.03em] text-content-faint uppercase">
+        {label}
+      </label>
+      <div className="flex h-[38px] items-center gap-[7px] rounded-[10px] border border-edge bg-surface-input px-2.5">
+        <MapPin size={14} className="shrink-0 text-content-faint" />
         <input
-          className={inputClass}
-          style={{ paddingLeft: 34, paddingRight: value ? 34 : undefined }}
-          value={text}
+          className="w-full border-0 bg-transparent font-inherit text-[13px] text-content outline-none"
+          value={display}
           placeholder="Search station or place…"
           autoComplete="off"
           onFocus={() => setOpen(true)}
           onChange={(event) => {
-            const next = value ? (event.nativeEvent as InputEvent).data || '' : event.target.value
+            const next = event.target.value
             setText(next)
             onChange(null)
             setOpen(true)
             search(next)
           }}
         />
-        {value ? (
-          <button
-            type="button"
-            className="absolute top-1/2 right-2 z-10 flex -translate-y-1/2 cursor-pointer border-0 bg-transparent p-0.5 text-content-faint hover:text-content"
-            onClick={() => {
-              onChange(null)
-              setText('')
-              setResults([])
-            }}
-            aria-label={`Clear ${label}`}
-          >
-            <X size={14} />
-          </button>
-        ) : null}
-        {open && (loading || results.length > 0) ? (
-          <div className="absolute top-[calc(100%+4px)] right-0 left-0 z-50 max-h-56 overflow-y-auto rounded-lg border border-edge bg-surface-card shadow-lg">
-            {loading && results.length === 0 ? (
-              <p className="m-0 px-3 py-2 text-xs text-content-faint">Searching transit stops…</p>
-            ) : null}
-            {results.map((place) => (
-              <button
-                key={`${place.name}-${place.lat}-${place.lng}`}
-                type="button"
-                className="flex w-full cursor-pointer items-start gap-2 border-0 bg-transparent px-3 py-2 text-left font-inherit hover:bg-surface-hover"
-                onClick={() => {
-                  onChange(place)
-                  setText(place.name)
-                  setOpen(false)
-                  setResults([])
-                }}
-              >
-                <MapPin size={14} className="mt-0.5 shrink-0 text-content-faint" />
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium text-content">{place.name}</span>
-                  {place.area ? <span className="block truncate text-xs text-content-faint">{place.area}</span> : null}
-                </span>
-              </button>
-            ))}
-          </div>
-        ) : null}
       </div>
-    </Field>
+      {open && (results.length > 0 || (!value && text.trim().length < 2 && quickPicks.length > 0)) ? (
+        <div className="absolute top-full right-0 left-0 z-30 mt-1 max-h-60 overflow-y-auto rounded-[10px] border border-edge bg-surface-card shadow-[0_8px_32px_rgba(0,0,0,0.14)]">
+          {results.length > 0
+            ? results.map((place, index) => (
+                <button
+                  key={`${place.name}-${place.lat}-${place.lng}-${index}`}
+                  type="button"
+                  className="flex w-full cursor-pointer items-center gap-2 border-0 bg-transparent px-2.5 py-2 text-left font-inherit text-[13px] text-content hover:bg-surface-hover"
+                  onClick={() => {
+                    onChange(place)
+                    setText('')
+                    setOpen(false)
+                    setResults([])
+                  }}
+                >
+                  <MapPin size={13} className="shrink-0 text-content-faint" />
+                  <span className="truncate">
+                    {place.name}
+                    {place.area ? <span className="text-content-faint"> · {place.area}</span> : null}
+                  </span>
+                </button>
+              ))
+            : quickPicks.map((place, index) => (
+                <button
+                  key={`${place.name}-${place.lat}-${place.lng}-${index}`}
+                  type="button"
+                  className="flex w-full cursor-pointer items-center gap-2 border-0 bg-transparent px-2.5 py-2 text-left font-inherit text-[13px] text-content hover:bg-surface-hover"
+                  onClick={() => {
+                    onChange(place)
+                    setText('')
+                    setOpen(false)
+                  }}
+                >
+                  <MapPin size={13} className="shrink-0 text-content-faint" />
+                  <span className="truncate">{place.name}</span>
+                </button>
+              ))}
+        </div>
+      ) : null}
+    </div>
   )
 }
 
@@ -188,6 +193,14 @@ function timezoneAt(lat: number, lng: number) {
   } catch {
     return 'UTC'
   }
+}
+
+/** Convert the day/time the user entered in an endpoint's local zone to UTC. */
+function localToUtcIso(date: string, clock: string, timezone: string) {
+  const naive = Date.parse(`${date}T${clock}:00Z`)
+  const inTimezone = new Date(new Date(naive).toLocaleString('en-US', { timeZone: timezone })).getTime()
+  const inUtc = new Date(new Date(naive).toLocaleString('en-US', { timeZone: 'UTC' })).getTime()
+  return new Date(naive - (inTimezone - inUtc)).toISOString()
 }
 
 function time(iso: string, timezone?: string) {
@@ -232,11 +245,15 @@ function LineBadge({ leg }: { leg: TransitLeg }) {
 
 function ItineraryCard({
   itinerary,
+  fromTimezone,
+  toTimezone,
   expanded,
   onToggle,
   onAdd,
 }: {
   itinerary: Itinerary
+  fromTimezone: string
+  toTimezone: string
   expanded: boolean
   onToggle: () => void
   onAdd: () => void
@@ -252,7 +269,7 @@ function ItineraryCard({
       >
         <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
           <strong className="text-[15px] tracking-tight text-content">
-            {time(itinerary.start_time)} – {time(itinerary.end_time)}
+            {time(itinerary.start_time, fromTimezone)} – {time(itinerary.end_time, toTimezone)}
           </strong>
           <span className="text-[13px] font-semibold text-content-muted">{duration(itinerary.duration)}</span>
           <span className="ml-auto inline-flex items-center gap-2 text-xs text-content-faint">
@@ -282,7 +299,7 @@ function ItineraryCard({
             return (
               <div className="grid grid-cols-[44px_18px_minmax(0,1fr)] gap-2" key={`${leg.mode}-${index}`}>
                 <div className="pt-0.5 text-right text-[11px] font-semibold text-content-muted">
-                  {leg.mode === 'WALK' ? '' : time(leg.from.time || '')}
+                  {leg.mode === 'WALK' ? '' : leg.from.time || ''}
                 </div>
                 <div className="flex flex-col items-center">
                   <span
@@ -331,7 +348,9 @@ function ItineraryCard({
             )
           })}
           <div className="grid grid-cols-[44px_18px_minmax(0,1fr)] items-center gap-2">
-            <div className="text-right text-[11px] font-semibold text-content-muted">{time(itinerary.end_time)}</div>
+            <div className="text-right text-[11px] font-semibold text-content-muted">
+              {time(itinerary.end_time, toTimezone)}
+            </div>
             <span className="mx-auto size-2.5 rounded-full bg-content" />
             <div className="truncate text-[13px] font-bold text-content">{itinerary.legs.at(-1)?.to.name}</div>
           </div>
@@ -547,6 +566,8 @@ export function AutomatedTransitForm({
   tripId,
   reservation,
   days,
+  places,
+  accommodations,
   onDraftChange,
   onSubmitDraft,
   onAutomatedTransitPlanningChange,
@@ -564,6 +585,31 @@ export function AutomatedTransitForm({
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null)
   const [changingRoute, setChangingRoute] = useState(false)
 
+  // Same picker inputs as TREK: the trip's mapped places and accommodations
+  // are available before a search, and the first one biases Transitous results.
+  const quickPicks = useMemo<TransitPlace[]>(() => {
+    const picks: TransitPlace[] = []
+    for (const place of places) {
+      if (typeof place.lat === 'number' && typeof place.lng === 'number' && place.name)
+        picks.push({ name: place.name, lat: place.lat, lng: place.lng })
+    }
+    for (const accommodation of accommodations) {
+      const place = places.find((item) => Number(item.id) === Number(accommodation.place_id))
+      if (place?.name && typeof place.lat === 'number' && typeof place.lng === 'number')
+        picks.push({ name: place.name, lat: place.lat, lng: place.lng })
+    }
+    const seen = new Set<string>()
+    return picks
+      .filter((place) => {
+        const key = `${place.name}:${place.lat}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      .slice(0, 8)
+  }, [accommodations, places])
+  const near = quickPicks.length ? `${quickPicks[0].lat},${quickPicks[0].lng}` : null
+
   useEffect(
     () => onAutomatedTransitPlanningChange?.(!reservation || changingRoute),
     [changingRoute, onAutomatedTransitPlanningChange, reservation],
@@ -572,9 +618,11 @@ export function AutomatedTransitForm({
   useEffect(() => {
     if (!reservation) return
     setDayId(reservation.day_id ? String(reservation.day_id) : '')
-    const [date = '', rawTime = ''] = (reservation.reservation_time || '').split(/[T ]/)
+    const [date = ''] = (reservation.reservation_time || '').split(/[T ]/)
     if (!reservation.day_id && date) setDayId(String(days.find((day) => day.date === date)?.id || ''))
-    setDepartureTime(rawTime.slice(0, 5))
+    // TREK starts a changed route search at 09:00 rather than the saved
+    // journey's departure time; only the day and endpoint prefill carry over.
+    setDepartureTime('09:00')
     onDraftChange?.(null)
   }, [days, onDraftChange, reservation])
 
@@ -609,6 +657,8 @@ export function AutomatedTransitForm({
     if (!tripId || !from || !to || !date) return
     setLoading(true)
     setSelected(null)
+    setItineraries([])
+    setExpandedIndex(null)
     try {
       const data = await window.trek.invoke<{ itineraries?: Itinerary[] }>('/transit/plan', {
         method: 'POST',
@@ -616,7 +666,13 @@ export function AutomatedTransitForm({
           tripId,
           from,
           to,
-          time: `${date}T${departureTime || '09:00'}`,
+          // Match TREK: a departure time belongs to the origin, while an
+          // arrive-by time belongs to the destination.
+          time: localToUtcIso(
+            date,
+            departureTime || '09:00',
+            arriveBy ? timezoneAt(to.lat, to.lng) : timezoneAt(from.lat, from.lng),
+          ),
           arriveBy,
           modes:
             activeModes.size === MODE_GROUPS.length
@@ -777,6 +833,8 @@ export function AutomatedTransitForm({
               resetPlan()
             }}
             label="From"
+            quickPicks={quickPicks}
+            near={near}
           />
           <button
             type="button"
@@ -799,6 +857,8 @@ export function AutomatedTransitForm({
               resetPlan()
             }}
             label="To"
+            quickPicks={quickPicks}
+            near={near}
           />
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-edge-faint pt-3">
@@ -885,15 +945,23 @@ export function AutomatedTransitForm({
       {itineraries.length === 0 && !loading ? (
         <p className="m-0 text-xs text-content-faint">Choose both locations and a trip day to find scheduled routes.</p>
       ) : null}
-      {rankedItineraries.map((itinerary, index) => (
-        <ItineraryCard
-          key={`${itinerary.start_time}-${index}`}
-          itinerary={itinerary}
-          expanded={expandedIndex === index}
-          onToggle={() => setExpandedIndex((current) => (current === index ? null : index))}
-          onAdd={() => choose(itinerary)}
-        />
-      ))}
+      {loading ? (
+        <div className="py-7 text-center text-content-faint">
+          <div className="mx-auto size-5 animate-spin rounded-full border-2 border-edge border-t-content" />
+        </div>
+      ) : (
+        rankedItineraries.map((itinerary, index) => (
+          <ItineraryCard
+            key={`${itinerary.start_time}-${index}`}
+            itinerary={itinerary}
+            fromTimezone={from ? timezoneAt(from.lat, from.lng) : 'UTC'}
+            toTimezone={to ? timezoneAt(to.lat, to.lng) : 'UTC'}
+            expanded={expandedIndex === index}
+            onToggle={() => setExpandedIndex((current) => (current === index ? null : index))}
+            onAdd={() => choose(itinerary)}
+          />
+        ))
+      )}
     </div>
   )
 }

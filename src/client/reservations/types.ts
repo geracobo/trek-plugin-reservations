@@ -41,6 +41,8 @@ export interface Place {
   id: number
   name?: string
   address?: string | null
+  lat?: number | null
+  lng?: number | null
   [key: string]: unknown
 }
 

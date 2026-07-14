@@ -78,12 +78,17 @@ async function transitSearchHandler(req, ctx) {
   const body = req.body && typeof req.body === 'object' ? req.body : {}
   const tripId = Number(body.tripId)
   const query = typeof body.query === 'string' ? body.query.trim() : ''
+  const language = typeof body.language === 'string' ? body.language.trim().slice(0, 5) : ''
+  const near = typeof body.near === 'string' ? body.near.trim() : ''
   if (!Number.isInteger(tripId) || tripId <= 0) return json(400, { error: 'tripId is required' })
   if (query.length < 2 || query.length > 200)
     return json(400, { error: 'Search query must be between 2 and 200 characters' })
   try {
     if (!(await ctx.trips.getById(tripId))) return json(404, { error: 'trip not found' })
     const params = new URLSearchParams({ text: query })
+    if (language) params.set('language', language)
+    // Transitous uses `place` to bias geocoding toward an existing trip location.
+    if (/^-?\d{1,3}(\.\d+)?,-?\d{1,3}(\.\d+)?$/.test(near)) params.set('place', near)
     const raw = await cached(`geocode:${params}`, () => upstream('/api/v1/geocode', params))
     const places = (Array.isArray(raw) ? raw : []).slice(0, 8).flatMap((place) => {
       const lat = coordinate(place?.lat)
