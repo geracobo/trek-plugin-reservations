@@ -4,6 +4,8 @@
   "version": "1.0.0",
   "apiVersion": 1,
   "author": "geracobo",
+  "homepage": "https://github.com/geracobo/trek-plugin-reservations",
+  "license": "MIT",
   "description": "Enhanced reservation views for transportation and bookings",
   "icon": "BookMarked",
   "type": "trip-page",
