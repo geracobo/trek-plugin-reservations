@@ -99,33 +99,27 @@ async function saveReservationHandler(req, ctx) {
     if (!(await ctx.trips.getById(tripId))) return json(404, { error: 'trip not found' })
     const payload = { ...input, title: input.title.trim() }
     if (accommodation) {
-      const venue = accommodation.venue && typeof accommodation.venue === 'object' ? accommodation.venue : null
-      const fields = {
-        place_id: Number(accommodation.place_id),
-        start_day_id: Number(accommodation.start_day_id),
-        end_day_id: Number(accommodation.end_day_id),
-        check_in: accommodation.check_in || null,
-        check_in_end: accommodation.check_in_end || null,
-        check_out: accommodation.check_out || null,
-        confirmation: accommodation.confirmation || null,
+      const startDayId = Number(accommodation.start_day_id)
+      const endDayId = Number(accommodation.end_day_id)
+      // Match TREK's ReservationModal: a hotel can exist without itinerary
+      // placement; selecting a day range adds its optional lodging block. A
+      // place is not required for that block.
+      if (Number.isInteger(startDayId) && startDayId > 0 && Number.isInteger(endDayId) && endDayId > 0) {
+        const placeId = Number(accommodation.place_id)
+        payload.create_accommodation = {
+          place_id: Number.isInteger(placeId) && placeId > 0 ? placeId : null,
+          start_day_id: startDayId,
+          end_day_id: endDayId,
+          check_in: accommodation.check_in || null,
+          check_out: accommodation.check_out || null,
+          confirmation: accommodation.confirmation || null,
+        }
       }
-      if (!Number.isInteger(fields.place_id) && venue && typeof venue.name === 'string' && venue.name.trim()) {
-        const createdPlace = await ctx.places.create(tripId, {
-          name: venue.name.trim(),
-          address: typeof venue.address === 'string' && venue.address.trim() ? venue.address.trim() : undefined,
-        })
-        fields.place_id = Number(createdPlace?.id)
-      }
-      if (
-        Number.isInteger(fields.place_id) &&
-        Number.isInteger(fields.start_day_id) &&
-        Number.isInteger(fields.end_day_id)
-      ) {
-        const savedAccommodation = accommodation.id
-          ? await ctx.accommodations.update(tripId, Number(accommodation.id), fields)
-          : await ctx.accommodations.create(tripId, fields)
-        if (savedAccommodation && typeof savedAccommodation === 'object' && savedAccommodation.id != null)
-          payload.accommodation_id = savedAccommodation.id
+      if (accommodation.check_in_end) {
+        payload.metadata = {
+          ...(payload.metadata && typeof payload.metadata === 'object' ? payload.metadata : {}),
+          check_in_end_time: accommodation.check_in_end,
+        }
       }
     }
     const saved = reservationId
