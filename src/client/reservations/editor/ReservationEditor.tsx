@@ -141,7 +141,7 @@ export function ReservationEditor({
       onClose={onClose}
       title={title}
       size="2xl"
-      contentClassName="sm:h-[calc(100dvh-90px)]"
+      viewportHeight="95dvh"
       footer={
         <div className="flex justify-end gap-2">
           <button type="button" onClick={onClose} className="trek-btn trek-btn--secondary px-4 py-2 text-xs">

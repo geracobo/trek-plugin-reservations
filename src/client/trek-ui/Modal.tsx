@@ -20,6 +20,7 @@ interface ModalProps {
   footer?: React.ReactNode
   hideCloseButton?: boolean
   contentClassName?: string
+  viewportHeight?: string
 }
 
 // Copied from TREK's shared Modal. Keep changes here aligned with the host
@@ -33,6 +34,7 @@ export default function Modal({
   footer,
   hideCloseButton = false,
   contentClassName = '',
+  viewportHeight,
 }: ModalProps) {
   const handleEsc = useCallback(
     (event: KeyboardEvent) => {
@@ -59,7 +61,11 @@ export default function Modal({
   return ReactDOM.createPortal(
     <div
       className="fixed inset-0 z-[10000] flex items-start justify-center bg-[rgba(15,23,42,0.5)] px-4 trek-modal-backdrop trek-backdrop-enter dark:bg-[rgba(0,0,0,0.6)] sm:items-center"
-      style={{ paddingTop: 70, paddingBottom: 'calc(20px + var(--bottom-nav-h))', overflow: 'hidden' }}
+      style={
+        viewportHeight
+          ? { overflow: 'hidden', alignItems: 'center' }
+          : { paddingTop: 70, paddingBottom: 'calc(20px + var(--bottom-nav-h))', overflow: 'hidden' }
+      }
       onMouseDown={(event) => {
         mouseDownTarget.current = event.target
       }}
@@ -70,6 +76,7 @@ export default function Modal({
     >
       <div
         className={`trek-modal-enter flex max-h-[calc(100dvh-var(--bottom-nav-h)-90px)] w-full flex-col overflow-hidden rounded-2xl bg-surface-card shadow-2xl sm:max-h-[calc(100dvh-90px)] ${sizeClasses[size] || sizeClasses.md} ${contentClassName}`}
+        style={viewportHeight ? { height: viewportHeight, maxHeight: viewportHeight } : undefined}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex shrink-0 items-center justify-between border-b border-edge-secondary p-6">
