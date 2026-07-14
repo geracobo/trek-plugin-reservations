@@ -243,9 +243,11 @@ function FlightDetails({
         <ReservationCardField label="Date" value={reservationDateRange(reservation)} centered />
         <ReservationCardField label="Time" value={reservationTimeRange(reservation)} centered />
       </div>
-      <div className="[&>div>div:last-child]:text-center">
-        <ReservationCardField label="Booking code" value={reservation.confirmation_number || '—'} mono />
-      </div>
+      {reservation.confirmation_number ? (
+        <div className="[&>div>div:last-child]:text-center">
+          <ReservationCardField label="Booking code" value={reservation.confirmation_number} mono />
+        </div>
+      ) : null}
       <RouteField route={route} Icon={Plane} />
     </>
   )

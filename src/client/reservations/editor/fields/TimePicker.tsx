@@ -120,6 +120,7 @@ export function TimePicker({
         />
         <button
           type="button"
+          tabIndex={-1}
           className="p-2.5 text-content-faint hover:text-content"
           aria-label="Choose time"
           onClick={() => setOpen((current) => !current)}

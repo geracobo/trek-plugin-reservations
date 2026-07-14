@@ -72,7 +72,11 @@ export function ReservationCardDetails({
 
       {visibleFields.has('files') && attachedFiles.length > 0 ? <ReservationCardFiles files={attachedFiles} /> : null}
 
-      {visibleFields.has('location') && reservation.location && !locationField ? (
+      {visibleFields.has('location') &&
+      !isFlight &&
+      reservation.type !== 'hotel' &&
+      reservation.location &&
+      !locationField ? (
         <div className="flex min-w-0 items-start gap-[7px] text-[12.5px] leading-[1.45] text-content-muted">
           <MapPin className="mt-0.5 shrink-0 text-content-faint" size={14} />
           <span>{reservation.location}</span>

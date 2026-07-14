@@ -56,7 +56,7 @@ function StatusBadge({ reservation }: { reservation: Reservation }) {
 export const RESERVATION_TABLE_COLUMNS: ReservationTableColumn[] = [
   {
     key: 'type',
-    label: 'Booking type',
+    label: 'Reservation type',
     render: (reservation) => {
       const typeInfo = getType(reservation.type)
       const TypeIcon = typeInfo.Icon

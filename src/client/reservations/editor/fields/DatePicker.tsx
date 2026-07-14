@@ -29,6 +29,7 @@ export function DatePicker({
   const [yearPage, setYearPage] = useState(Math.floor(year / 12) * 12)
   const triggerRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const pointerFocusRef = useRef(false)
 
   useEffect(() => {
     if (!open) return
@@ -106,13 +107,29 @@ export function DatePicker({
         className="flex min-h-[38px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[10px] border border-edge bg-surface-input px-3.5 py-2 text-[13px] text-content"
         aria-expanded={open}
         aria-haspopup="dialog"
-        onClick={() => setOpen((current) => !current)}
+        onPointerDown={() => {
+          pointerFocusRef.current = true
+        }}
+        onFocus={() => {
+          // Tabbing into the field should go straight to editable text. Pointer
+          // focus remains a calendar trigger, so a mouse click still opens it.
+          if (!pointerFocusRef.current) {
+            setText(value)
+            setTyping(true)
+          }
+          pointerFocusRef.current = false
+        }}
+        onClick={() => {
+          pointerFocusRef.current = false
+          setOpen((current) => !current)
+        }}
       >
         <Calendar size={14} className="shrink-0 text-content-faint" />
         <span className={display ? 'truncate' : 'truncate text-content-faint'}>{display || placeholder}</span>
       </button>
       <button
         type="button"
+        tabIndex={-1}
         className="flex shrink-0 items-center rounded-lg border border-edge p-[7px] text-content-faint hover:text-content"
         aria-label="Enter date manually"
         onClick={() => {
