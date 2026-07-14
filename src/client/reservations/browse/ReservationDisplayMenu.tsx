@@ -23,12 +23,18 @@ interface ReservationDisplayMenuProps {
   onColumnToggle: (column: TableColumnKey) => void
   onCardFieldToggle: (field: CardFieldKey) => void
   onResetView: () => void
+  embedded?: boolean
 }
 
 export function ReservationDisplayMenu(props: ReservationDisplayMenuProps) {
+  const containerClass = props.embedded ? '' : panelClass
   if (props.viewMode === 'calendar') {
     return (
-      <div className={panelClass} role="dialog" aria-label="View options">
+      <div
+        className={containerClass}
+        role={props.embedded ? undefined : 'dialog'}
+        aria-label={props.embedded ? undefined : 'View options'}
+      >
         <p className="px-2 py-3 text-xs leading-relaxed text-content-faint">
           Calendar entries are always placed by date. Display options are available in Cards and Table views.
         </p>
@@ -37,14 +43,18 @@ export function ReservationDisplayMenu(props: ReservationDisplayMenuProps) {
   }
 
   return (
-    <div className={panelClass} role="dialog" aria-label="View options">
+    <div
+      className={containerClass}
+      role={props.embedded ? undefined : 'dialog'}
+      aria-label={props.embedded ? undefined : 'View options'}
+    >
       <OptionLabel label="Sort" Icon={ArrowDownAZ} bordered={false} />
       <div className="grid grid-cols-2 gap-1 px-1 pb-2">
         {(['date', 'title', 'type', 'status'] as const).map((key) => (
           <button
             key={key}
             type="button"
-            className={`rounded-lg px-2 py-1.5 text-left text-xs font-semibold ${props.sortKey === key ? 'bg-accent-subtle text-accent' : 'text-content-muted hover:bg-surface-hover'}`}
+            className={`rounded-lg px-2 py-1.5 text-left text-xs font-semibold ${props.sortKey === key ? 'bg-surface-hover text-content' : 'text-content-muted hover:bg-surface-hover'}`}
             onClick={() =>
               props.onSortChange(key, props.sortKey === key && props.sortDirection === 'asc' ? 'desc' : 'asc')
             }
@@ -67,7 +77,7 @@ export function ReservationDisplayMenu(props: ReservationDisplayMenuProps) {
           <button
             key={key}
             type="button"
-            className={`rounded-lg px-2 py-1.5 text-left text-xs font-semibold ${props.groupBy === key ? 'bg-accent-subtle text-accent' : 'text-content-muted hover:bg-surface-hover'}`}
+            className={`rounded-lg px-2 py-1.5 text-left text-xs font-semibold ${props.groupBy === key ? 'bg-surface-hover text-content' : 'text-content-muted hover:bg-surface-hover'}`}
             onClick={() => props.onGroupChange(key)}
           >
             {label}
@@ -127,7 +137,7 @@ function ToggleRow({ label, checked, onClick }: { label: string; checked: boolea
   return (
     <button
       type="button"
-      className={`${rowClass} ${checked ? 'bg-accent-subtle text-accent hover:bg-accent-subtle' : ''}`}
+      className={`${rowClass} ${checked ? 'bg-surface-hover text-content hover:bg-surface-hover' : ''}`}
       aria-pressed={checked}
       onClick={onClick}
     >

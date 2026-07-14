@@ -14,6 +14,7 @@ export function ReservationFilterMenu({
   onStatusChange,
   onTypeToggle,
   onClearFilters,
+  embedded = false,
 }: {
   statusFilter: StatusFilter
   types: TypeOption[]
@@ -23,12 +24,17 @@ export function ReservationFilterMenu({
   onStatusChange: (status: StatusFilter) => void
   onTypeToggle: (type: string) => void
   onClearFilters: () => void
+  embedded?: boolean
 }) {
   return (
     <div
-      className="absolute top-[calc(100%+6px)] right-0 z-30 w-[min(330px,calc(100vw-32px))] rounded-xl border border-edge bg-surface p-2 shadow-lg max-[720px]:right-auto max-[720px]:left-0 max-[720px]:w-full"
-      role="dialog"
-      aria-label="Filter reservations"
+      className={
+        embedded
+          ? ''
+          : 'absolute top-[calc(100%+6px)] right-0 z-30 w-[min(330px,calc(100vw-32px))] rounded-xl border border-edge bg-surface p-2 shadow-lg'
+      }
+      role={embedded ? undefined : 'dialog'}
+      aria-label={embedded ? undefined : 'Filter reservations'}
     >
       <p className="px-2 pt-1 pb-1 text-[10px] font-extrabold uppercase tracking-wide text-content-faint">Status</p>
       <div className="mb-2 grid grid-cols-3 gap-1">
@@ -42,7 +48,7 @@ export function ReservationFilterMenu({
           <button
             key={status}
             type="button"
-            className={`rounded-lg px-2 py-2 text-xs font-semibold ${statusFilter === status ? 'bg-accent-subtle text-accent' : 'text-content-muted hover:bg-surface-hover'}`}
+            className={`rounded-lg px-2 py-2 text-xs font-semibold ${statusFilter === status ? 'bg-surface-hover text-content' : 'text-content-muted hover:bg-surface-hover'}`}
             onClick={() => onStatusChange(status)}
           >
             {label}
@@ -61,7 +67,7 @@ export function ReservationFilterMenu({
               <button
                 key={option.value}
                 type="button"
-                className={`${rowClass} ${selected ? 'bg-accent-subtle text-accent hover:bg-accent-subtle' : ''}`}
+                className={`${rowClass} ${selected ? 'bg-surface-hover text-content hover:bg-surface-hover' : ''}`}
                 onClick={() => onTypeToggle(option.value)}
               >
                 <span
