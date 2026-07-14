@@ -18,10 +18,10 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import tzLookup from 'tz-lookup'
-import type { ReservationFormProps } from '../types'
-import { Field, inputClass } from '../FormFields'
-import { TripDaySelect } from '../TripDaySelect'
-import { TimePicker } from '../TimePicker'
+import type { ReservationFormProps } from '../editor-types'
+import { Field, inputClass } from '../fields/FormFields'
+import { TripDaySelect } from '../fields/TripDaySelect'
+import { TimePicker } from '../fields/TimePicker'
 import { normalizeMetadata } from '../../model'
 
 type TransitPlace = { name: string; lat: number; lng: number; area?: string | null }
@@ -81,7 +81,12 @@ function TransitLocationInput({
   const request = useRef(0)
 
   useEffect(() => setText(value?.name || ''), [value?.name])
-  useEffect(() => () => timer.current && clearTimeout(timer.current), [])
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current)
+    },
+    [],
+  )
   const search = (query: string) => {
     if (timer.current) clearTimeout(timer.current)
     if (!tripId || query.trim().length < 2) return setResults([])

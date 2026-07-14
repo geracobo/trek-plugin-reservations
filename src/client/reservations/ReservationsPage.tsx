@@ -1,35 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
-import type {
-  Accommodation,
-  Cost,
-  Day,
-  Place,
-  ReservationFile,
-  ReservationsResponse,
-  Reservation,
-  StatusFilter,
-  Trip,
-  ViewMode,
-} from './types'
-import {
-  filterAndSortReservations,
-  getType,
-  reservationRoute,
-  reservationStatus,
-  reservationTitle,
-  TRANSPORT_TYPES,
-  TYPE_OPTIONS,
-} from './model'
-import { ReservationCardView } from './ReservationCardView'
-import { ReservationCalendarView } from './ReservationCalendarView'
-import { ReservationTableView } from './ReservationTableView'
-import type { TableColumnKey } from './ReservationTableView'
-import { ReservationHeader } from './ReservationHeader'
-import type { ReservationCategory } from './ReservationHeader'
+import { useEffect, useState } from 'react'
+import type { Accommodation, Cost, Day, Place, ReservationFile, ReservationsResponse, Reservation, Trip } from './types'
+import { reservationTitle } from './model'
+import { ReservationCardView } from './cards/ReservationCardView'
+import { ReservationCalendarView } from './calendar/ReservationCalendarView'
+import { ReservationTableView } from './table/ReservationTableView'
+import { ReservationBrowseToolbar } from './browse/ReservationBrowseToolbar'
+import { useReservationBrowse } from './browse/useReservationBrowse'
 import { ReservationEditor } from './editor/ReservationEditor'
 import type { ReservationTypeCategory } from './editor/ReservationTypeSelector'
-import { DEFAULT_CARD_FIELDS, DEFAULT_TABLE_COLUMNS, sortReservations } from './view-options'
-import type { CardFieldKey, ReservationGroupBy, ReservationSortKey, SortDirection } from './view-options'
 
 interface ReservationsPageState {
   tripId: number | null
@@ -42,36 +20,6 @@ interface ReservationsPageState {
   costs: Cost[]
   loading: boolean
   error: string | null
-}
-
-function reservationCategory(reservation: Reservation): Exclude<ReservationCategory, 'all'> {
-  if (TRANSPORT_TYPES.has(reservation.type ?? '')) return 'transportation'
-  if (reservation.type === 'hotel') return 'accommodation'
-  return 'booking'
-}
-
-function countByType(reservations: Reservation[]) {
-  return reservations.reduce<Record<string, number>>((acc, reservation) => {
-    const type = reservation.type ?? 'other'
-    acc[type] = (acc[type] ?? 0) + 1
-    return acc
-  }, {})
-}
-
-function reservationSearchText(reservation: Reservation) {
-  return [
-    reservationTitle(reservation),
-    getType(reservation.type).label,
-    reservationStatus(reservation),
-    reservationRoute(reservation).join(' '),
-    reservation.location || reservation.accommodation_name || reservation.place_name,
-    reservation.confirmation_number,
-    reservation.notes,
-    reservation.external_source,
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase()
 }
 
 function updateReservationFiles(
@@ -95,17 +43,6 @@ export function ReservationsPage() {
     loading: true,
     error: null,
   })
-  const [viewMode, setViewMode] = useState<ViewMode>('cards')
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
-  const [category, setCategory] = useState<ReservationCategory>('all')
-  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(() => new Set())
-  const [sortKey, setSortKey] = useState<ReservationSortKey>('date')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
-  const [cardGroupBy, setCardGroupBy] = useState<ReservationGroupBy>('status')
-  const [tableGroupBy, setTableGroupBy] = useState<ReservationGroupBy>('none')
-  const [visibleColumns, setVisibleColumns] = useState<Set<TableColumnKey>>(() => new Set(DEFAULT_TABLE_COLUMNS))
-  const [visibleCardFields, setVisibleCardFields] = useState<Set<CardFieldKey>>(() => new Set(DEFAULT_CARD_FIELDS))
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null)
   const [editorSession, setEditorSession] = useState(0)
@@ -167,94 +104,11 @@ export function ReservationsPage() {
     })
   }, [])
 
-  const typeCounts = useMemo(() => countByType(pageState.reservations), [pageState.reservations])
-  const groupBy = viewMode === 'table' ? tableGroupBy : cardGroupBy
-  const categoryCounts = useMemo(
-    () =>
-      pageState.reservations.reduce<Record<Exclude<ReservationCategory, 'all'>, number>>(
-        (counts, reservation) => {
-          const key = reservationCategory(reservation)
-          counts[key] += 1
-          return counts
-        },
-        { transportation: 0, accommodation: 0, booking: 0 },
-      ),
-    [pageState.reservations],
-  )
-  const secondaryTypes = useMemo(
-    () =>
-      category === 'all'
-        ? TYPE_OPTIONS.filter((option) => typeCounts[option.value])
-        : TYPE_OPTIONS.filter(
-            (option) => typeCounts[option.value] && reservationCategory({ id: 0, type: option.value }) === category,
-          ),
-    [category, typeCounts],
-  )
-  const filtered = useMemo(() => {
-    const query = search.trim().toLowerCase()
-    const inCategory =
-      category === 'all'
-        ? pageState.reservations
-        : pageState.reservations.filter((reservation) => reservationCategory(reservation) === category)
-    return sortReservations(
-      filterAndSortReservations(
-        inCategory,
-        selectedTypes,
-        statusFilter,
-        pageState.days,
-        pageState.accommodations,
-      ).filter((reservation) => !query || reservationSearchText(reservation).includes(query)),
-      sortKey,
-      sortDirection,
-    )
-  }, [pageState.reservations, category, selectedTypes, statusFilter, search, sortKey, sortDirection])
-
-  const toggleType = (type: string) => {
-    setSelectedTypes((current) => {
-      const next = new Set(current)
-      if (next.has(type)) next.delete(type)
-      else next.add(type)
-      return next
-    })
-  }
-
-  const selectCategory = (next: ReservationCategory) => {
-    setCategory(next)
-    setSelectedTypes(new Set())
-  }
-
-  const clearFilters = () => {
-    setSearch('')
-    setSelectedTypes(new Set())
-    setStatusFilter('all')
-  }
-  const toggleColumn = (column: TableColumnKey) => {
-    setVisibleColumns((current) => {
-      const next = new Set(current)
-      if (next.has(column)) next.delete(column)
-      else next.add(column)
-      return next
-    })
-  }
-  const toggleCardField = (field: CardFieldKey) => {
-    setVisibleCardFields((current) => {
-      const next = new Set(current)
-      if (next.has(field)) next.delete(field)
-      else next.add(field)
-      return next
-    })
-  }
-  const resetView = () => {
-    setSortKey('date')
-    setSortDirection('asc')
-    if (viewMode === 'cards') {
-      setCardGroupBy('status')
-      setVisibleCardFields(new Set(DEFAULT_CARD_FIELDS))
-    } else if (viewMode === 'table') {
-      setTableGroupBy('none')
-      setVisibleColumns(new Set(DEFAULT_TABLE_COLUMNS))
-    }
-  }
+  const browse = useReservationBrowse({
+    reservations: pageState.reservations,
+    days: pageState.days,
+    accommodations: pageState.accommodations,
+  })
 
   const openNewReservation = () => {
     setEditingReservation(null)
@@ -278,6 +132,33 @@ export function ReservationsPage() {
           : [...current.reservations, saved],
       }
     })
+
+    const tripId = pageState.tripId
+    if (!tripId) return
+    // Hotel saves can create or update a separate lodging block. Reload the
+    // surface so the card has the current accommodation/day linkage straight
+    // away, rather than waiting for the plugin to be reopened.
+    void window.trek
+      .invoke<ReservationsResponse>(`/reservations?tripId=${encodeURIComponent(tripId)}`)
+      .then((data) => {
+        setPageState((current) => {
+          if (current.tripId !== tripId) return current
+          return {
+            ...current,
+            trip: data.trip,
+            reservations: Array.isArray(data.reservations) ? data.reservations : [],
+            places: Array.isArray(data.places) ? data.places : [],
+            days: Array.isArray(data.days) ? data.days : [],
+            accommodations: Array.isArray(data.accommodations) ? data.accommodations : [],
+            files: Array.isArray(data.files) ? data.files : [],
+            costs: Array.isArray(data.costs) ? data.costs : [],
+          }
+        })
+      })
+      .catch(() => {
+        // The reservation itself already saved; retain the optimistic update
+        // if this best-effort hydration request is unavailable.
+      })
   }
   const deleteReservation = async (reservation: Reservation) => {
     if (!pageState.tripId) return
@@ -438,44 +319,36 @@ export function ReservationsPage() {
     }
   }
 
-  const hasActiveFilters = search.trim() || selectedTypes.size > 0 || statusFilter !== 'all'
-
   return (
     <main className="h-full min-h-0 overflow-y-auto overscroll-contain px-5 pt-3.5 pb-[72px] max-[720px]:p-4">
-      <ReservationHeader
+      <ReservationBrowseToolbar
         reservationCount={pageState.reservations.length}
-        filteredCount={filtered.length}
-        category={category}
-        categoryCounts={categoryCounts}
-        viewMode={viewMode}
-        search={search}
-        secondaryTypes={secondaryTypes}
-        selectedTypes={selectedTypes}
-        typeCounts={typeCounts}
-        statusFilter={statusFilter}
-        sortKey={sortKey}
-        sortDirection={sortDirection}
-        groupBy={groupBy}
-        visibleColumns={visibleColumns}
-        visibleCardFields={visibleCardFields}
-        hasActiveFilters={Boolean(hasActiveFilters)}
-        onCategoryChange={selectCategory}
-        onViewModeChange={setViewMode}
-        onSearchChange={setSearch}
-        onTypeToggle={toggleType}
-        onStatusChange={setStatusFilter}
-        onSortChange={(key, direction) => {
-          setSortKey(key)
-          setSortDirection(direction)
-        }}
-        onGroupChange={(nextGroupBy) => {
-          if (viewMode === 'table') setTableGroupBy(nextGroupBy)
-          else setCardGroupBy(nextGroupBy)
-        }}
-        onColumnToggle={toggleColumn}
-        onCardFieldToggle={toggleCardField}
-        onClearFilters={clearFilters}
-        onResetView={resetView}
+        filteredCount={browse.filteredReservations.length}
+        category={browse.category}
+        categoryCounts={browse.categoryCounts}
+        viewMode={browse.viewMode}
+        search={browse.search}
+        secondaryTypes={browse.secondaryTypes}
+        selectedTypes={browse.selectedTypes}
+        typeCounts={browse.typeCounts}
+        statusFilter={browse.statusFilter}
+        sortKey={browse.sortKey}
+        sortDirection={browse.sortDirection}
+        groupBy={browse.groupBy}
+        visibleColumns={browse.visibleColumns}
+        visibleCardFields={browse.visibleCardFields}
+        hasActiveFilters={browse.hasActiveFilters}
+        onCategoryChange={browse.selectCategory}
+        onViewModeChange={browse.setViewMode}
+        onSearchChange={browse.setSearch}
+        onTypeToggle={browse.toggleType}
+        onStatusChange={browse.setStatusFilter}
+        onSortChange={browse.setSort}
+        onGroupChange={browse.setGroupBy}
+        onColumnToggle={browse.toggleColumn}
+        onCardFieldToggle={browse.toggleCardField}
+        onClearFilters={browse.clearFilters}
+        onResetView={browse.resetView}
         onAddReservation={openNewReservation}
       />
 
@@ -494,29 +367,33 @@ export function ReservationsPage() {
           <h2>No reservations yet</h2>
           <p>Add transportation or booking reservations in the TREK planner and they will appear here.</p>
         </div>
-      ) : filtered.length === 0 ? (
+      ) : browse.filteredReservations.length === 0 ? (
         <div className="trek-card px-5 py-14 text-center [&_h2]:mb-1.5 [&_h2]:text-[15px] [&_p]:mx-auto [&_p]:max-w-[520px] [&_p]:text-[13px] [&_p]:leading-[1.45] [&_p]:text-content-muted">
           <h2>No reservations found</h2>
           <p>Adjust the filters or search.</p>
         </div>
-      ) : viewMode === 'table' ? (
+      ) : browse.viewMode === 'table' ? (
         <ReservationTableView
-          reservations={filtered}
-          visibleColumns={visibleColumns}
-          groupBy={groupBy}
+          reservations={browse.filteredReservations}
+          visibleColumns={browse.visibleColumns}
+          groupBy={browse.groupBy}
           onEdit={openEditReservation}
           onDelete={deleteReservation}
         />
-      ) : viewMode === 'calendar' ? (
-        <ReservationCalendarView reservations={filtered} trip={pageState.trip} onEdit={openEditReservation} />
+      ) : browse.viewMode === 'calendar' ? (
+        <ReservationCalendarView
+          reservations={browse.filteredReservations}
+          trip={pageState.trip}
+          onEdit={openEditReservation}
+        />
       ) : (
         <ReservationCardView
-          reservations={filtered}
+          reservations={browse.filteredReservations}
           trip={pageState.trip}
           days={pageState.days}
           accommodations={pageState.accommodations}
-          groupBy={groupBy}
-          visibleFields={visibleCardFields}
+          groupBy={browse.groupBy}
+          visibleFields={browse.visibleCardFields}
           onEdit={openEditReservation}
           onDelete={deleteReservation}
         />
@@ -529,8 +406,11 @@ export function ReservationsPage() {
         startingCategory={
           editingReservation
             ? undefined
-            : ((category === 'transportation' ? 'transit' : category === 'all' ? undefined : category) as
-                ReservationTypeCategory | undefined)
+            : ((browse.category === 'transportation'
+                ? 'transit'
+                : browse.category === 'all'
+                  ? undefined
+                  : browse.category) as ReservationTypeCategory | undefined)
         }
         days={pageState.days}
         places={pageState.places}

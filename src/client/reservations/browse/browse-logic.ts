@@ -1,21 +1,10 @@
-import type { Reservation } from './types'
-import { getType, reservationDate, reservationStatus, reservationTitle } from './model'
-import type { TableColumnKey } from './ReservationTableView'
+import type { Reservation } from '../types'
+import { getType, reservationDate, reservationStatus, reservationTitle } from '../model'
 
+export type ReservationCategory = 'all' | 'transportation' | 'accommodation' | 'booking'
 export type ReservationSortKey = 'date' | 'title' | 'type' | 'status'
 export type SortDirection = 'asc' | 'desc'
 export type ReservationGroupBy = 'status' | 'date' | 'type' | 'none'
-export type CardFieldKey = 'schedule' | 'details' | 'location' | 'files' | 'notes'
-
-export const CARD_FIELDS: Array<{ key: CardFieldKey; label: string }> = [
-  { key: 'schedule', label: 'Schedule' },
-  { key: 'details', label: 'Details' },
-  { key: 'location', label: 'Location & route' },
-  { key: 'files', label: 'Files' },
-  { key: 'notes', label: 'Notes' },
-]
-
-export const DEFAULT_CARD_FIELDS = new Set<CardFieldKey>(CARD_FIELDS.map((field) => field.key))
 
 export function sortReservations(
   reservations: Reservation[],
@@ -73,14 +62,3 @@ export function groupReservations(reservations: Reservation[], groupBy: Reservat
   }
   return Array.from(groups.values())
 }
-
-export const DEFAULT_TABLE_COLUMNS = new Set<TableColumnKey>([
-  'type',
-  'status',
-  'title',
-  'date',
-  'time',
-  'route',
-  'code',
-  'files',
-])

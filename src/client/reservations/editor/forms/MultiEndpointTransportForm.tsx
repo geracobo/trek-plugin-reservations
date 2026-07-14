@@ -1,11 +1,11 @@
 import { Plus, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import type { ReservationFormProps } from '../types'
-import { Field, inputClass, labelClass } from '../FormFields'
+import type { ReservationFormProps } from '../editor-types'
+import { Field, inputClass, labelClass } from '../fields/FormFields'
 import { normalizeMetadata } from '../../model'
-import { PlaceInputSearch, type PlaceInputSearchResult } from '../PlaceInputSearch'
-import { TripDaySelect } from '../TripDaySelect'
-import { TimePicker } from '../TimePicker'
+import { PlaceInputSearch, type PlaceInputSearchResult } from '../fields/PlaceInputSearch'
+import { TripDaySelect } from '../fields/TripDaySelect'
+import { TimePicker } from '../fields/TimePicker'
 
 interface Waypoint {
   name: string
@@ -69,8 +69,8 @@ export function MultiEndpointTransportForm({ tripId, type, reservation, days, on
               return {
                 ...emptyWaypoint(),
                 name: endpoint.name || '',
-                code: endpoint.code || null,
-                timezone: endpoint.timezone || null,
+                code: typeof endpoint.code === 'string' ? endpoint.code : null,
+                timezone: typeof endpoint.timezone === 'string' ? endpoint.timezone : null,
                 lat: Number.isFinite(Number(endpoint.lat)) ? Number(endpoint.lat) : null,
                 lng: Number.isFinite(Number(endpoint.lng)) ? Number(endpoint.lng) : null,
                 arrivalDayId: String(

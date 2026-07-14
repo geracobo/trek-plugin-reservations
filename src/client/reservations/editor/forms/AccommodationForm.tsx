@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import type { ReservationFormProps } from '../types'
-import { Field, inputClass } from '../FormFields'
-import { PlaceInputSearch } from '../PlaceInputSearch'
-import { TripDaySelect } from '../TripDaySelect'
-import { TimePicker } from '../TimePicker'
+import type { ReservationFormProps } from '../editor-types'
+import { Field, inputClass } from '../fields/FormFields'
+import { PlaceInputSearch } from '../fields/PlaceInputSearch'
+import { TripDaySelect } from '../fields/TripDaySelect'
+import { TimePicker } from '../fields/TimePicker'
 
 function dayLabel(day: { title?: string | null; day_number?: number; date?: string | null }) {
   return day.title || `Day ${day.day_number || ''}`.trim()
@@ -98,7 +98,6 @@ export function AccommodationForm({
         check_in_end: draft.checkInUntil || null,
         check_out: draft.checkOut || null,
         confirmation: draft.code || null,
-        venue: draft.placeId ? null : { name: draft.title, address: draft.address || null },
       },
     })
   }, [accommodations, draft, onDraftChange, reservation?.accommodation_id, type])

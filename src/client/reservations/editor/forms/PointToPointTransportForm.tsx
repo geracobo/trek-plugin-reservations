@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import type { ReservationFormProps } from '../types'
-import { Field, inputClass } from '../FormFields'
-import { PlaceInputSearch, type PlaceInputSearchResult } from '../PlaceInputSearch'
-import { TripDaySelect } from '../TripDaySelect'
-import { TimePicker } from '../TimePicker'
+import type { ReservationFormProps } from '../editor-types'
+import { Field, inputClass } from '../fields/FormFields'
+import { PlaceInputSearch, type PlaceInputSearchResult } from '../fields/PlaceInputSearch'
+import { TripDaySelect } from '../fields/TripDaySelect'
+import { TimePicker } from '../fields/TimePicker'
 import { reservationRoute } from '../../model'
 
 export function PointToPointTransportForm({ tripId, type, reservation, days, onDraftChange }: ReservationFormProps) {

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link2 } from 'lucide-react'
-import type { ReservationFormProps } from '../types'
-import { Field, inputClass } from '../FormFields'
-import { PlaceInputSearch } from '../PlaceInputSearch'
-import { DatePicker } from '../DatePicker'
-import { TimePicker } from '../TimePicker'
-import { BookingAssignmentSelect } from '../BookingAssignmentSelect'
+import type { ReservationFormProps } from '../editor-types'
+import { Field, inputClass } from '../fields/FormFields'
+import { PlaceInputSearch } from '../fields/PlaceInputSearch'
+import { DatePicker } from '../fields/DatePicker'
+import { TimePicker } from '../fields/TimePicker'
+import { BookingAssignmentSelect } from '../fields/BookingAssignmentSelect'
 
 export function MultiDateBookingForm({ tripId, type, reservation, days, places, onDraftChange }: ReservationFormProps) {
   const [draft, setDraft] = useState({

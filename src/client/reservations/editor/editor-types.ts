@@ -35,7 +35,6 @@ export interface ReservationDraft {
     check_in_end?: string | null
     check_out?: string | null
     confirmation?: string | null
-    venue?: { name: string; address?: string | null } | null
   }
 }
 

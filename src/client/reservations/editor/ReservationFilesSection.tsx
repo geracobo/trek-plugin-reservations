@@ -1,26 +1,11 @@
 import { ExternalLink, FileText, Link2, Paperclip, X } from 'lucide-react'
 import { useRef, useState, type ChangeEvent } from 'react'
 import type { ReservationFile } from '../types'
+import { openReservationFile, reservationFileName } from '../attachments/ReservationAttachments'
 
 // Plugin route bodies go through TREK's 100 KB JSON parser. Base64 expands the
 // bytes in transit, so leave room for the surrounding request envelope.
 const PLUGIN_UPLOAD_MAX_BYTES = 64 * 1024
-
-function fileName(file: ReservationFile) {
-  return file.original_name || file.filename || file.name || 'Unnamed file'
-}
-
-function openFile(file: ReservationFile) {
-  if (typeof file.url !== 'string' || !file.url) return
-  try {
-    // TREK file records usually expose a relative download URL. The sandboxed
-    // iframe cannot open a popup itself, and the host bridge accepts http(s)
-    // URLs only, so resolve it against the host origin first.
-    window.trek.openExternal(new URL(file.url, window.location.origin).href)
-  } catch {
-    window.trek.notify('error', 'Unable to open this file.')
-  }
-}
 
 export function ReservationFilesSection({
   files,
@@ -100,11 +85,13 @@ export function ReservationFilesSection({
           return (
             <div key={file.id} className="flex items-center gap-2 rounded-lg bg-surface-secondary px-2.5 py-[5px]">
               <FileText size={12} className="shrink-0 text-content-muted" />
-              <span className="min-w-0 flex-1 truncate text-[12px] text-content-secondary">{fileName(file)}</span>
+              <span className="min-w-0 flex-1 truncate text-[12px] text-content-secondary">
+                {reservationFileName(file)}
+              </span>
               {typeof file.url === 'string' && file.url && (
                 <button
                   type="button"
-                  onClick={() => openFile(file)}
+                  onClick={() => openReservationFile(file)}
                   title="Open file"
                   className="flex shrink-0 cursor-pointer bg-transparent p-0 text-content-faint"
                 >
@@ -181,7 +168,7 @@ export function ReservationFilesSection({
                 className="flex w-full items-center gap-2 rounded-[7px] bg-transparent px-2.5 py-1.5 text-left text-[12px] text-content-secondary hover:bg-surface-muted disabled:opacity-50"
               >
                 <FileText size={12} className="shrink-0 text-content-faint" />
-                <span className="min-w-0 flex-1 truncate">{fileName(file)}</span>
+                <span className="min-w-0 flex-1 truncate">{reservationFileName(file)}</span>
               </button>
             ))}
           </div>

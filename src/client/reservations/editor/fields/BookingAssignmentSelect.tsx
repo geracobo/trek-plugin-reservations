@@ -1,5 +1,5 @@
 import { Link2 } from 'lucide-react'
-import type { Day } from '../types'
+import type { Day } from '../../types'
 import { Field } from './FormFields'
 import { TripDaySelect, type TripDayOption } from './TripDaySelect'
 

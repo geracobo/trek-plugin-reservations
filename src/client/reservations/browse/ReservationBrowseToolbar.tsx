@@ -1,30 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  ArrowDownAZ,
   CalendarDays,
-  Check,
   ChevronDown,
-  Eye,
   Filter,
   Hotel,
   LayoutGrid,
-  ListFilter,
   Plus,
   Route,
   Search,
   SlidersHorizontal,
   Table2,
   Ticket,
-  X,
 } from 'lucide-react'
-import type { StatusFilter, ViewMode } from './types'
-import type { TypeOption } from './model'
-import { TABLE_COLUMNS } from './ReservationTableView'
-import type { TableColumnKey } from './ReservationTableView'
-import { CARD_FIELDS } from './view-options'
-import type { CardFieldKey, ReservationGroupBy, ReservationSortKey, SortDirection } from './view-options'
-
-export type ReservationCategory = 'all' | 'transportation' | 'accommodation' | 'booking'
+import type { StatusFilter, ViewMode } from '../types'
+import type { TypeOption } from '../model'
+import type { CardFieldKey } from '../cards/ReservationCardSections'
+import type { TableColumnKey } from '../table/ReservationTableColumns'
+import type { ReservationCategory, ReservationGroupBy, ReservationSortKey, SortDirection } from './browse-logic'
+import { ReservationDisplayMenu } from './ReservationDisplayMenu'
+import { ReservationFilterMenu } from './ReservationFilterMenu'
 
 const CATEGORY_OPTIONS = [
   { value: 'transportation', label: 'Transportation', Icon: Route },
@@ -34,12 +28,8 @@ const CATEGORY_OPTIONS = [
 
 const triggerClass =
   'trek-btn trek-btn--ghost min-h-9 rounded-[10px] border border-edge bg-surface px-2.5 py-[7px] text-xs font-semibold text-content-muted max-[720px]:w-full'
-const panelClass =
-  'absolute top-[calc(100%+6px)] z-30 w-[min(330px,calc(100vw-32px))] rounded-xl border border-edge bg-surface p-2 shadow-lg max-[720px]:right-auto max-[720px]:left-0 max-[720px]:w-full'
-const rowClass =
-  'flex min-h-[34px] w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs font-semibold text-content-muted hover:bg-surface-hover'
 
-interface ReservationHeaderProps {
+interface ReservationBrowseToolbarProps {
   reservationCount: number
   filteredCount: number
   category: ReservationCategory
@@ -70,7 +60,7 @@ interface ReservationHeaderProps {
   onAddReservation: () => void
 }
 
-export function ReservationHeader(props: ReservationHeaderProps) {
+export function ReservationBrowseToolbar(props: ReservationBrowseToolbarProps) {
   const [filterOpen, setFilterOpen] = useState(false)
   const [viewOptionsOpen, setViewOptionsOpen] = useState(false)
   const menuAreaRef = useRef<HTMLDivElement>(null)
@@ -207,7 +197,18 @@ export function ReservationHeader(props: ReservationHeaderProps) {
               size={14}
             />
           </button>
-          {filterOpen ? <FilterPanel {...props} /> : null}
+          {filterOpen ? (
+            <ReservationFilterMenu
+              statusFilter={props.statusFilter}
+              types={props.secondaryTypes}
+              selectedTypes={props.selectedTypes}
+              typeCounts={props.typeCounts}
+              hasActiveFilters={props.hasActiveFilters}
+              onStatusChange={props.onStatusChange}
+              onTypeToggle={props.onTypeToggle}
+              onClearFilters={props.onClearFilters}
+            />
+          ) : null}
         </div>
         <div className="relative max-[720px]:w-full">
           <button
@@ -224,7 +225,21 @@ export function ReservationHeader(props: ReservationHeaderProps) {
               size={14}
             />
           </button>
-          {viewOptionsOpen ? <ViewOptionsPanel {...props} /> : null}
+          {viewOptionsOpen ? (
+            <ReservationDisplayMenu
+              viewMode={props.viewMode}
+              sortKey={props.sortKey}
+              sortDirection={props.sortDirection}
+              groupBy={props.groupBy}
+              visibleColumns={props.visibleColumns}
+              visibleCardFields={props.visibleCardFields}
+              onSortChange={props.onSortChange}
+              onGroupChange={props.onGroupChange}
+              onColumnToggle={props.onColumnToggle}
+              onCardFieldToggle={props.onCardFieldToggle}
+              onResetView={props.onResetView}
+            />
+          ) : null}
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-2 max-[720px]:ml-0 max-[720px]:w-full">
           <span className="ml-auto whitespace-nowrap text-xs font-semibold text-content-faint">
@@ -285,191 +300,5 @@ function Count({ count }: { count: number }) {
     <span className="min-w-[18px] rounded-full bg-surface-muted px-[5px] py-px text-center text-[10px] font-extrabold text-content-faint">
       {count}
     </span>
-  )
-}
-
-function FilterPanel(props: ReservationHeaderProps) {
-  return (
-    <div className={`${panelClass} right-0`} role="dialog" aria-label="Filter reservations">
-      <p className="px-2 pt-1 pb-1 text-[10px] font-extrabold uppercase tracking-wide text-content-faint">Status</p>
-      <div className="mb-2 grid grid-cols-3 gap-1">
-        {(
-          [
-            ['all', 'All'],
-            ['confirmed', 'Confirmed'],
-            ['pending', 'Pending'],
-          ] as const
-        ).map(([status, label]) => (
-          <button
-            key={status}
-            type="button"
-            className={`rounded-lg px-2 py-2 text-xs font-semibold ${props.statusFilter === status ? 'bg-accent-subtle text-accent' : 'text-content-muted hover:bg-surface-hover'}`}
-            onClick={() => props.onStatusChange(status)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      {props.secondaryTypes.length ? (
-        <>
-          <p className="border-t border-edge-faint px-2 pt-3 pb-1 text-[10px] font-extrabold uppercase tracking-wide text-content-faint">
-            Types
-          </p>
-          {props.secondaryTypes.map((option) => {
-            const Icon = option.Icon
-            const selected = props.selectedTypes.has(option.value)
-            return (
-              <button
-                key={option.value}
-                type="button"
-                className={`${rowClass} ${selected ? 'bg-accent-subtle text-accent hover:bg-accent-subtle' : ''}`}
-                aria-pressed={selected}
-                onClick={() => props.onTypeToggle(option.value)}
-              >
-                <span
-                  className={`grid size-4 place-items-center rounded border ${selected ? 'border-accent bg-accent text-white' : 'border-edge bg-surface'}`}
-                >
-                  {selected ? <Check size={11} /> : null}
-                </span>
-                <Icon size={14} style={{ color: option.color }} />
-                <span className="flex-1 text-left">{option.label}</span>
-                <Count count={props.typeCounts[option.value] || 0} />
-              </button>
-            )
-          })}
-        </>
-      ) : (
-        <p className="px-2 py-3 text-xs text-content-faint">Choose a category to filter its types.</p>
-      )}
-      {props.hasActiveFilters ? (
-        <div className="mt-2 border-t border-edge-faint pt-2">
-          <button
-            type="button"
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold text-content-muted hover:bg-surface-hover hover:text-content"
-            onClick={() => {
-              props.onClearFilters()
-            }}
-          >
-            <X size={13} /> Clear filters
-          </button>
-        </div>
-      ) : null}
-    </div>
-  )
-}
-
-function ViewOptionsPanel(props: ReservationHeaderProps) {
-  if (props.viewMode === 'calendar') {
-    return (
-      <div className={`${panelClass} right-0`} role="dialog" aria-label="View options">
-        <p className="px-2 py-3 text-xs leading-relaxed text-content-faint">
-          Calendar entries are always placed by date. Display options are available in Cards and Table views.
-        </p>
-      </div>
-    )
-  }
-
-  return (
-    <div className={`${panelClass} right-0`} role="dialog" aria-label="View options">
-      <OptionLabel label="Sort" Icon={ArrowDownAZ} bordered={false} />
-      <div className="grid grid-cols-2 gap-1 px-1 pb-2">
-        {(['date', 'title', 'type', 'status'] as const).map((key) => (
-          <button
-            key={key}
-            type="button"
-            className={`rounded-lg px-2 py-1.5 text-left text-xs font-semibold ${props.sortKey === key ? 'bg-accent-subtle text-accent' : 'text-content-muted hover:bg-surface-hover'}`}
-            onClick={() =>
-              props.onSortChange(key, props.sortKey === key && props.sortDirection === 'asc' ? 'desc' : 'asc')
-            }
-          >
-            {key[0].toUpperCase() + key.slice(1)}
-            {props.sortKey === key ? ` · ${props.sortDirection === 'asc' ? 'A–Z' : 'Z–A'}` : ''}
-          </button>
-        ))}
-      </div>
-      <OptionLabel label="Group" Icon={ListFilter} />
-      <div className="grid grid-cols-2 gap-1 px-1 pb-2">
-        {(
-          [
-            ['status', 'Status'],
-            ['date', 'Date'],
-            ['type', 'Type'],
-            ['none', 'No grouping'],
-          ] as const
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            className={`rounded-lg px-2 py-1.5 text-left text-xs font-semibold ${props.groupBy === key ? 'bg-accent-subtle text-accent' : 'text-content-muted hover:bg-surface-hover'}`}
-            onClick={() => props.onGroupChange(key)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      {props.viewMode === 'table' ? (
-        <>
-          <OptionLabel label="Columns" Icon={Eye} />
-          {TABLE_COLUMNS.map((column) => (
-            <ToggleRow
-              key={column.key}
-              label={column.label}
-              checked={props.visibleColumns.has(column.key)}
-              onClick={() => props.onColumnToggle(column.key)}
-            />
-          ))}
-        </>
-      ) : props.viewMode === 'cards' ? (
-        <>
-          <OptionLabel label="Card fields" Icon={Eye} />
-          {CARD_FIELDS.map((field) => (
-            <ToggleRow
-              key={field.key}
-              label={field.label}
-              checked={props.visibleCardFields.has(field.key)}
-              onClick={() => props.onCardFieldToggle(field.key)}
-            />
-          ))}
-        </>
-      ) : null}
-      <div className="mt-2 border-t border-edge-faint pt-2">
-        <button
-          type="button"
-          className="flex w-full items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold text-content-muted hover:bg-surface-hover hover:text-content"
-          onClick={() => {
-            props.onResetView()
-          }}
-        >
-          <X size={13} /> Reset view
-        </button>
-      </div>
-    </div>
-  )
-}
-function OptionLabel({ label, Icon, bordered = true }: { label: string; Icon: typeof Route; bordered?: boolean }) {
-  return (
-    <p
-      className={`flex items-center gap-1.5 px-2 pb-1 text-[10px] font-extrabold uppercase tracking-wide text-content-faint ${bordered ? 'border-t border-edge-faint pt-3' : 'pt-1'}`}
-    >
-      <Icon size={11} />
-      {label}
-    </p>
-  )
-}
-function ToggleRow({ label, checked, onClick }: { label: string; checked: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      className={`${rowClass} ${checked ? 'bg-accent-subtle text-accent hover:bg-accent-subtle' : ''}`}
-      aria-pressed={checked}
-      onClick={onClick}
-    >
-      <span
-        className={`grid size-4 place-items-center rounded border ${checked ? 'border-accent bg-accent text-white' : 'border-edge bg-surface'}`}
-      >
-        {checked ? <Check size={11} /> : null}
-      </span>
-      {label}
-    </button>
   )
 }

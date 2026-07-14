@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Accommodation, Cost, Day, Place, Reservation, ReservationFile } from '../types'
 import { getType } from '../model'
 import Modal from '../../trek-ui/Modal'
-import { reservationFormKind, type ReservationDraft, type ReservationFormProps } from './types'
+import { reservationFormKind, type ReservationDraft, type ReservationFormProps } from './editor-types'
 import { MultiEndpointTransportForm } from './forms/MultiEndpointTransportForm'
 import { PointToPointTransportForm } from './forms/PointToPointTransportForm'
 import { AutomatedTransitForm } from './forms/AutomatedTransitForm'
@@ -14,7 +14,10 @@ import type { ReservationTypeCategory } from './ReservationTypeSelector'
 import { ReservationCostsSection } from './ReservationCostsSection'
 import { ReservationFilesSection } from './ReservationFilesSection'
 
-interface ReservationEditorProps extends ReservationFormProps {
+interface ReservationEditorProps extends Omit<
+  ReservationFormProps,
+  'type' | 'onDraftChange' | 'onSubmitDraft' | 'onAutomatedTransitPlanningChange'
+> {
   open: boolean
   startingType?: string
   startingCategory?: ReservationTypeCategory

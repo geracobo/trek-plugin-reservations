@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
-import type { Accommodation, Day, Reservation, Trip } from './types'
+import type { Accommodation, Day, Reservation, Trip } from '../types'
 import { ReservationCard } from './ReservationCard'
-import { groupReservations } from './view-options'
-import type { CardFieldKey, ReservationGroupBy } from './view-options'
+import { groupReservations } from '../browse/browse-logic'
+import type { ReservationGroupBy } from '../browse/browse-logic'
+import type { CardFieldKey } from './ReservationCardSections'
 
 interface ReservationCardViewProps {
   reservations: Reservation[]

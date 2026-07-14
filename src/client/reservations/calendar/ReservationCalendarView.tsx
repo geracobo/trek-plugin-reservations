@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
-import type { Reservation, Trip } from './types'
-import { getType, reservationDate, reservationTitle } from './model'
+import type { Reservation, Trip } from '../types'
+import { getType, reservationDate, reservationTitle } from '../model'
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -30,14 +30,11 @@ function reservationDateKeys(reservation: Reservation) {
   const start = reservationDate(reservation)
   const end = reservation.reservation_end_time?.split(/[T ]/)[0] || start
   if (!start) return []
-
   const startDate = new Date(`${start}T00:00:00Z`)
   const endDate = new Date(`${end}T00:00:00Z`)
   if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || endDate < startDate) return [start]
-
   const keys: string[] = []
   const current = new Date(startDate)
-  // A guard prevents malformed data from turning a calendar render into a long loop.
   while (current <= endDate && keys.length < 366) {
     keys.push(dateKey(current))
     current.setUTCDate(current.getUTCDate() + 1)
