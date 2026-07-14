@@ -137,7 +137,7 @@ function ToggleRow({ label, checked, onClick }: { label: string; checked: boolea
   return (
     <button
       type="button"
-      className={`${rowClass} ${checked ? 'bg-surface-hover text-content hover:bg-surface-hover' : ''}`}
+      className={`${rowClass} ${checked ? 'text-content' : ''}`}
       aria-pressed={checked}
       onClick={onClick}
     >
