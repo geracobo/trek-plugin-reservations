@@ -17,6 +17,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import type { Accommodation, Day, Reservation, Trip } from './types'
+import type { CardFieldKey } from './view-options'
 import {
   getType,
   metadataFields,
@@ -34,6 +35,7 @@ interface ReservationCardProps {
   trip: Trip | null
   days: Day[]
   accommodations: Accommodation[]
+  visibleFields: Set<CardFieldKey>
   onEdit: (reservation: Reservation) => void
   onDelete: (reservation: Reservation) => void
 }
@@ -373,7 +375,15 @@ function TransitLegChips({ legs }: { legs: TransitLeg[] }) {
   )
 }
 
-export function ReservationCard({ reservation, trip, days, accommodations, onEdit, onDelete }: ReservationCardProps) {
+export function ReservationCard({
+  reservation,
+  trip,
+  days,
+  accommodations,
+  visibleFields,
+  onEdit,
+  onDelete,
+}: ReservationCardProps) {
   const typeInfo = getType(reservation.type)
   const TypeIcon = typeInfo.Icon
   const status = reservationStatus(reservation)
@@ -462,9 +472,9 @@ export function ReservationCard({ reservation, trip, days, accommodations, onEdi
       </header>
 
       <div className="flex flex-1 flex-col gap-3 p-3.5">
-        {isFlight ? (
+        {isFlight && visibleFields.has('schedule') ? (
           <FlightDetails reservation={reservation} trip={trip} days={days} accommodations={accommodations} />
-        ) : visibleSummary ? (
+        ) : visibleSummary && visibleFields.has('schedule') ? (
           <div className="min-w-0">
             <div className="mb-[5px] text-center text-[10px] font-extrabold uppercase text-content-faint">
               Trip days
@@ -482,29 +492,43 @@ export function ReservationCard({ reservation, trip, days, accommodations, onEdi
           </div>
         ) : null}
 
-        {!isFlight ? (
+        {!isFlight && (visibleFields.has('schedule') || visibleFields.has('details')) ? (
           <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-2.5">
-            <Field label="Date" value={reservationDateRange(reservation)} centered />
-            <Field label="Time" value={reservationTimeRange(reservation)} centered />
-            <Field label="Confirmation code" value={reservation.confirmation_number} mono />
-            {detailFields.map((field) => (
-              <Field
-                key={`${field.label}-${field.value}`}
-                label={field.label}
-                value={field.value}
-                Icon={field.label === 'Accommodation' ? Hotel : undefined}
-              />
-            ))}
+            {visibleFields.has('schedule') ? (
+              <>
+                <Field label="Date" value={reservationDateRange(reservation)} centered />
+                <Field label="Time" value={reservationTimeRange(reservation)} centered />
+              </>
+            ) : null}
+            {visibleFields.has('details') ? (
+              <>
+                <Field label="Confirmation code" value={reservation.confirmation_number} mono />
+                {detailFields.map((field) => (
+                  <Field
+                    key={`${field.label}-${field.value}`}
+                    label={field.label}
+                    value={field.value}
+                    Icon={field.label === 'Accommodation' ? Hotel : undefined}
+                  />
+                ))}
+              </>
+            ) : null}
           </div>
         ) : null}
 
-        {locationField ? <Field label={locationField.label} value={locationField.value} Icon={MapPin} /> : null}
+        {visibleFields.has('location') && locationField ? (
+          <Field label={locationField.label} value={locationField.value} Icon={MapPin} />
+        ) : null}
 
-        {isAutomatedTransit && transitLegs.length > 0 ? <TransitLegChips legs={transitLegs} /> : null}
+        {visibleFields.has('location') && isAutomatedTransit && transitLegs.length > 0 ? (
+          <TransitLegChips legs={transitLegs} />
+        ) : null}
 
-        {!isFlight && !isAutomatedTransit ? <RouteField route={route} Icon={TypeIcon} /> : null}
+        {visibleFields.has('location') && !isFlight && !isAutomatedTransit ? (
+          <RouteField route={route} Icon={TypeIcon} />
+        ) : null}
 
-        {attachedFiles.length > 0 ? (
+        {visibleFields.has('files') && attachedFiles.length > 0 ? (
           <div>
             <div className="mb-[5px] text-[10px] font-extrabold uppercase text-content-faint">Files</div>
             <div className="flex flex-col gap-[7px] rounded-[10px] bg-surface-muted px-3 py-2.5 text-content-muted">
@@ -521,14 +545,14 @@ export function ReservationCard({ reservation, trip, days, accommodations, onEdi
           </div>
         ) : null}
 
-        {reservation.location && !locationField ? (
+        {visibleFields.has('location') && reservation.location && !locationField ? (
           <div className="flex min-w-0 items-start gap-[7px] text-[12.5px] leading-[1.45] text-content-muted">
             <MapPin className="mt-0.5 shrink-0 text-content-faint" size={14} />
             <span>{reservation.location}</span>
           </div>
         ) : null}
 
-        {reservation.notes ? (
+        {visibleFields.has('notes') && reservation.notes ? (
           <div className="flex min-w-0 items-start gap-[7px] text-[12.5px] leading-[1.45] text-content-muted">
             <StickyNote className="mt-0.5 shrink-0 text-content-faint" size={14} />
             <p className="m-0 whitespace-pre-wrap [overflow-wrap:anywhere]">{reservation.notes}</p>

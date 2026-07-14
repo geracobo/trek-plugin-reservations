@@ -87,6 +87,7 @@ body,
  * ------------------------------------------------------------------------- */
 button:not(:disabled):not([data-no-press]),
 [role='button']:not([aria-disabled='true']):not([data-no-press]) {
+  cursor: pointer;
   transition-property: transform, color, background-color, border-color, box-shadow, opacity, filter !important;
   transition-duration: 180ms;
   transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);

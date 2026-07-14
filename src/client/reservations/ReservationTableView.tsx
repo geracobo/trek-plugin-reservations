@@ -3,6 +3,8 @@ import { useState } from 'react'
 import type { Reservation, ReservationFile } from './types'
 import { getType, reservationRoute, reservationTimeRange, reservationTitle, TRANSPORT_TYPES } from './model'
 import Modal from '../trek-ui/Modal'
+import { groupReservations } from './view-options'
+import type { ReservationGroupBy } from './view-options'
 
 export const TABLE_COLUMNS = [
   { key: 'type', label: 'Booking type' },
@@ -20,6 +22,7 @@ export type TableColumnKey = (typeof TABLE_COLUMNS)[number]['key']
 interface ReservationTableViewProps {
   reservations: Reservation[]
   visibleColumns: Set<TableColumnKey>
+  groupBy: ReservationGroupBy
   onEdit: (reservation: Reservation) => void
   onDelete: (reservation: Reservation) => void
 }
@@ -202,8 +205,15 @@ function ReservationTableRow({
   )
 }
 
-export function ReservationTableView({ reservations, visibleColumns, onEdit, onDelete }: ReservationTableViewProps) {
+export function ReservationTableView({
+  reservations,
+  visibleColumns,
+  groupBy,
+  onEdit,
+  onDelete,
+}: ReservationTableViewProps) {
   const [filesPopup, setFilesPopup] = useState<ReservationFile[] | null>(null)
+  const groups = groupReservations(reservations, groupBy)
   return (
     <>
       <div className="trek-card overflow-auto rounded-xl p-0">
@@ -217,16 +227,30 @@ export function ReservationTableView({ reservations, visibleColumns, onEdit, onD
             </tr>
           </thead>
           <tbody>
-            {reservations.map((reservation) => (
-              <ReservationTableRow
-                key={reservation.id}
-                reservation={reservation}
-                visibleColumns={visibleColumns}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onShowFiles={setFilesPopup}
-              />
-            ))}
+            {groups.flatMap((group) => [
+              ...(groupBy === 'none'
+                ? []
+                : [
+                    <tr key={`group-${group.key}`} className="bg-surface-muted hover:!bg-surface-muted">
+                      <th
+                        colSpan={visibleColumns.size + 1}
+                        className="!sticky-[unset] !bg-surface-muted !py-2 !text-[10px] !text-content-muted"
+                      >
+                        {group.title} <span className="ml-1 text-content-faint">{group.reservations.length}</span>
+                      </th>
+                    </tr>,
+                  ]),
+              ...group.reservations.map((reservation) => (
+                <ReservationTableRow
+                  key={reservation.id}
+                  reservation={reservation}
+                  visibleColumns={visibleColumns}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onShowFiles={setFilesPopup}
+                />
+              )),
+            ])}
           </tbody>
         </table>
       </div>

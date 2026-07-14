@@ -1,35 +1,17 @@
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import type { Accommodation, Day, Reservation, Trip } from './types'
-import { reservationStatus } from './model'
 import { ReservationCard } from './ReservationCard'
-
-interface ReservationGroup {
-  key: string
-  title: string
-  reservations: Reservation[]
-}
-
-function groupReservations(reservations: Reservation[]): ReservationGroup[] {
-  return [
-    {
-      key: 'pending',
-      title: 'Pending',
-      reservations: reservations.filter((reservation) => reservationStatus(reservation) !== 'confirmed'),
-    },
-    {
-      key: 'confirmed',
-      title: 'Confirmed',
-      reservations: reservations.filter((reservation) => reservationStatus(reservation) === 'confirmed'),
-    },
-  ].filter((group) => group.reservations.length > 0)
-}
+import { groupReservations } from './view-options'
+import type { CardFieldKey, ReservationGroupBy } from './view-options'
 
 interface ReservationCardViewProps {
   reservations: Reservation[]
   trip: Trip | null
   days: Day[]
   accommodations: Accommodation[]
+  groupBy: ReservationGroupBy
+  visibleFields: Set<CardFieldKey>
   onEdit: (reservation: Reservation) => void
   onDelete: (reservation: Reservation) => void
 }
@@ -39,10 +21,12 @@ export function ReservationCardView({
   trip,
   days,
   accommodations,
+  groupBy,
+  visibleFields,
   onEdit,
   onDelete,
 }: ReservationCardViewProps) {
-  const groups = groupReservations(reservations)
+  const groups = groupReservations(reservations, groupBy)
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set())
 
   const toggleGroup = (key: string) => {
@@ -52,6 +36,25 @@ export function ReservationCardView({
       else next.add(key)
       return next
     })
+  }
+
+  if (groupBy === 'none') {
+    return (
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(max(33.33%_-_14px,340px),1fr))] items-stretch gap-3.5">
+        {reservations.map((reservation) => (
+          <ReservationCard
+            key={reservation.id}
+            reservation={reservation}
+            trip={trip}
+            days={days}
+            accommodations={accommodations}
+            visibleFields={visibleFields}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        ))}
+      </div>
+    )
   }
 
   return groups.map((group) => {
@@ -82,6 +85,7 @@ export function ReservationCardView({
                 trip={trip}
                 days={days}
                 accommodations={accommodations}
+                visibleFields={visibleFields}
                 onEdit={onEdit}
                 onDelete={onDelete}
               />

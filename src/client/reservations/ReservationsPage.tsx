@@ -22,12 +22,14 @@ import {
 } from './model'
 import { ReservationCardView } from './ReservationCardView'
 import { ReservationCalendarView } from './ReservationCalendarView'
-import { ReservationTableView, TABLE_COLUMNS } from './ReservationTableView'
+import { ReservationTableView } from './ReservationTableView'
 import type { TableColumnKey } from './ReservationTableView'
 import { ReservationHeader } from './ReservationHeader'
 import type { ReservationCategory } from './ReservationHeader'
 import { ReservationEditor } from './editor/ReservationEditor'
 import type { ReservationTypeCategory } from './editor/ReservationTypeSelector'
+import { DEFAULT_CARD_FIELDS, DEFAULT_TABLE_COLUMNS, sortReservations } from './view-options'
+import type { CardFieldKey, ReservationGroupBy, ReservationSortKey, SortDirection } from './view-options'
 
 interface ReservationsPageState {
   tripId: number | null
@@ -47,8 +49,6 @@ function reservationCategory(reservation: Reservation): Exclude<ReservationCateg
   if (reservation.type === 'hotel') return 'accommodation'
   return 'booking'
 }
-
-const defaultTableColumns = new Set<TableColumnKey>(TABLE_COLUMNS.map((column) => column.key))
 
 function countByType(reservations: Reservation[]) {
   return reservations.reduce<Record<string, number>>((acc, reservation) => {
@@ -100,6 +100,12 @@ export function ReservationsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [category, setCategory] = useState<ReservationCategory>('all')
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(() => new Set())
+  const [sortKey, setSortKey] = useState<ReservationSortKey>('date')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const [cardGroupBy, setCardGroupBy] = useState<ReservationGroupBy>('status')
+  const [tableGroupBy, setTableGroupBy] = useState<ReservationGroupBy>('none')
+  const [visibleColumns, setVisibleColumns] = useState<Set<TableColumnKey>>(() => new Set(DEFAULT_TABLE_COLUMNS))
+  const [visibleCardFields, setVisibleCardFields] = useState<Set<CardFieldKey>>(() => new Set(DEFAULT_CARD_FIELDS))
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null)
   const [editorSession, setEditorSession] = useState(0)
@@ -162,6 +168,7 @@ export function ReservationsPage() {
   }, [])
 
   const typeCounts = useMemo(() => countByType(pageState.reservations), [pageState.reservations])
+  const groupBy = viewMode === 'table' ? tableGroupBy : cardGroupBy
   const categoryCounts = useMemo(
     () =>
       pageState.reservations.reduce<Record<Exclude<ReservationCategory, 'all'>, number>>(
@@ -177,7 +184,7 @@ export function ReservationsPage() {
   const secondaryTypes = useMemo(
     () =>
       category === 'all'
-        ? []
+        ? TYPE_OPTIONS.filter((option) => typeCounts[option.value])
         : TYPE_OPTIONS.filter(
             (option) => typeCounts[option.value] && reservationCategory({ id: 0, type: option.value }) === category,
           ),
@@ -189,14 +196,18 @@ export function ReservationsPage() {
       category === 'all'
         ? pageState.reservations
         : pageState.reservations.filter((reservation) => reservationCategory(reservation) === category)
-    return filterAndSortReservations(
-      inCategory,
-      selectedTypes,
-      statusFilter,
-      pageState.days,
-      pageState.accommodations,
-    ).filter((reservation) => !query || reservationSearchText(reservation).includes(query))
-  }, [pageState.reservations, category, selectedTypes, statusFilter, search])
+    return sortReservations(
+      filterAndSortReservations(
+        inCategory,
+        selectedTypes,
+        statusFilter,
+        pageState.days,
+        pageState.accommodations,
+      ).filter((reservation) => !query || reservationSearchText(reservation).includes(query)),
+      sortKey,
+      sortDirection,
+    )
+  }, [pageState.reservations, category, selectedTypes, statusFilter, search, sortKey, sortDirection])
 
   const toggleType = (type: string) => {
     setSelectedTypes((current) => {
@@ -216,6 +227,33 @@ export function ReservationsPage() {
     setSearch('')
     setSelectedTypes(new Set())
     setStatusFilter('all')
+  }
+  const toggleColumn = (column: TableColumnKey) => {
+    setVisibleColumns((current) => {
+      const next = new Set(current)
+      if (next.has(column)) next.delete(column)
+      else next.add(column)
+      return next
+    })
+  }
+  const toggleCardField = (field: CardFieldKey) => {
+    setVisibleCardFields((current) => {
+      const next = new Set(current)
+      if (next.has(field)) next.delete(field)
+      else next.add(field)
+      return next
+    })
+  }
+  const resetView = () => {
+    setSortKey('date')
+    setSortDirection('asc')
+    if (viewMode === 'cards') {
+      setCardGroupBy('status')
+      setVisibleCardFields(new Set(DEFAULT_CARD_FIELDS))
+    } else if (viewMode === 'table') {
+      setTableGroupBy('none')
+      setVisibleColumns(new Set(DEFAULT_TABLE_COLUMNS))
+    }
   }
 
   const openNewReservation = () => {
@@ -415,13 +453,29 @@ export function ReservationsPage() {
         selectedTypes={selectedTypes}
         typeCounts={typeCounts}
         statusFilter={statusFilter}
+        sortKey={sortKey}
+        sortDirection={sortDirection}
+        groupBy={groupBy}
+        visibleColumns={visibleColumns}
+        visibleCardFields={visibleCardFields}
         hasActiveFilters={Boolean(hasActiveFilters)}
         onCategoryChange={selectCategory}
         onViewModeChange={setViewMode}
         onSearchChange={setSearch}
         onTypeToggle={toggleType}
         onStatusChange={setStatusFilter}
+        onSortChange={(key, direction) => {
+          setSortKey(key)
+          setSortDirection(direction)
+        }}
+        onGroupChange={(nextGroupBy) => {
+          if (viewMode === 'table') setTableGroupBy(nextGroupBy)
+          else setCardGroupBy(nextGroupBy)
+        }}
+        onColumnToggle={toggleColumn}
+        onCardFieldToggle={toggleCardField}
         onClearFilters={clearFilters}
+        onResetView={resetView}
         onAddReservation={openNewReservation}
       />
 
@@ -448,7 +502,8 @@ export function ReservationsPage() {
       ) : viewMode === 'table' ? (
         <ReservationTableView
           reservations={filtered}
-          visibleColumns={defaultTableColumns}
+          visibleColumns={visibleColumns}
+          groupBy={groupBy}
           onEdit={openEditReservation}
           onDelete={deleteReservation}
         />
@@ -460,6 +515,8 @@ export function ReservationsPage() {
           trip={pageState.trip}
           days={pageState.days}
           accommodations={pageState.accommodations}
+          groupBy={groupBy}
+          visibleFields={visibleCardFields}
           onEdit={openEditReservation}
           onDelete={deleteReservation}
         />
