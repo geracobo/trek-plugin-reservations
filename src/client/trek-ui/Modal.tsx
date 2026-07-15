@@ -21,6 +21,7 @@ interface ModalProps {
   hideCloseButton?: boolean
   contentClassName?: string
   viewportHeight?: string
+  bodyRef?: React.Ref<HTMLDivElement>
 }
 
 // Copied from TREK's shared Modal. Keep changes here aligned with the host
@@ -35,6 +36,7 @@ export default function Modal({
   hideCloseButton = false,
   contentClassName = '',
   viewportHeight,
+  bodyRef,
 }: ModalProps) {
   const handleEsc = useCallback(
     (event: KeyboardEvent) => {
@@ -79,7 +81,7 @@ export default function Modal({
         style={viewportHeight ? { height: viewportHeight, maxHeight: viewportHeight } : undefined}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-edge-secondary p-6">
+        <div className="flex shrink-0 items-center justify-between border-b border-edge-secondary p-4 sm:p-6">
           <h2 className="text-lg font-semibold text-content">{title}</h2>
           {!hideCloseButton && (
             <button
@@ -91,9 +93,11 @@ export default function Modal({
           )}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-6">{children}</div>
+        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto p-6">
+          {children}
+        </div>
 
-        {footer && <div className="shrink-0 border-t border-edge-secondary p-6">{footer}</div>}
+        {footer && <div className="shrink-0 border-t border-edge-secondary p-4 sm:p-6">{footer}</div>}
       </div>
     </div>,
     document.body,

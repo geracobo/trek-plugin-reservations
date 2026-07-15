@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Accommodation, Cost, Day, Place, Reservation, ReservationFile } from '../types'
 import { getType } from '../model'
 import { getReservationPresentation, type ReservationCategory } from '../presentation'
@@ -56,6 +56,10 @@ export function ReservationEditor({
   const [automatedTransitPlanning, setAutomatedTransitPlanning] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [changingSavedType, setChangingSavedType] = useState(false)
+  const modalBodyRef = useRef<HTMLDivElement>(null)
+  const scrollToEditorTop = () => {
+    requestAnimationFrame(() => modalBodyRef.current?.scrollTo({ top: 0, behavior: 'auto' }))
+  }
   useEffect(() => {
     if (open) {
       setType(reservation?.type || startingType || null)
@@ -84,6 +88,10 @@ export function ReservationEditor({
     setDraft(null)
     setAutomatedTransitPlanning(false)
   }
+  const selectNewReservationType = (nextType: string) => {
+    setType(nextType)
+    scrollToEditorTop()
+  }
   const typeCategory = type ? getReservationPresentation(type).category : undefined
   const canChangeSavedType = Boolean(
     reservation &&
@@ -109,6 +117,7 @@ export function ReservationEditor({
     setDraft(null)
     setAutomatedTransitPlanning(false)
     setChangingSavedType(false)
+    scrollToEditorTop()
   }
   const save = async (createCost: boolean = false) => {
     if (!tripId || !draft || saving) return
@@ -173,6 +182,7 @@ export function ReservationEditor({
       title={title}
       size="2xl"
       viewportHeight="95dvh"
+      bodyRef={modalBodyRef}
       footer={
         <div className="flex justify-end gap-2">
           <button type="button" onClick={onClose} className="trek-btn trek-btn--secondary px-4 py-2 text-xs">
@@ -211,7 +221,7 @@ export function ReservationEditor({
           ) : (
             <ReservationTypeSelector
               category={changingSavedType ? typeCategory : undefined}
-              onChange={changingSavedType ? selectSavedReservationType : setType}
+              onChange={changingSavedType ? selectSavedReservationType : selectNewReservationType}
               onCancel={changingSavedType ? () => setChangingSavedType(false) : undefined}
             />
           )}
