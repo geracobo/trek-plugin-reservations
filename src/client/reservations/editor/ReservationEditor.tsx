@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Accommodation, Cost, Day, Place, Reservation, ReservationFile } from '../types'
 import { getType } from '../model'
+import { getReservationPresentation, type ReservationCategory } from '../presentation'
 import Modal from '../../trek-ui/Modal'
 import { reservationFormKind, type ReservationDraft, type ReservationFormProps } from './editor-types'
 import { MultiEndpointTransportForm } from './forms/MultiEndpointTransportForm'
@@ -10,7 +11,6 @@ import { AccommodationForm } from './forms/AccommodationForm'
 import { SingleDateBookingForm } from './forms/SingleDateBookingForm'
 import { MultiDateBookingForm } from './forms/MultiDateBookingForm'
 import { ReservationTypeSelector } from './ReservationTypeSelector'
-import type { ReservationTypeCategory } from './ReservationTypeSelector'
 import { ReservationCostsSection } from './ReservationCostsSection'
 import { ReservationFilesSection } from './ReservationFilesSection'
 
@@ -20,7 +20,6 @@ interface ReservationEditorProps extends Omit<
 > {
   open: boolean
   startingType?: string
-  startingCategory?: ReservationTypeCategory
   onClose: () => void
   onSaved: (reservation: Reservation) => void
   costs: Cost[]
@@ -41,7 +40,6 @@ export function ReservationEditor({
   accommodations,
   files,
   startingType,
-  startingCategory,
   onClose,
   onSaved,
   costs,
@@ -57,14 +55,16 @@ export function ReservationEditor({
   const [saving, setSaving] = useState(false)
   const [automatedTransitPlanning, setAutomatedTransitPlanning] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  const [changingSavedType, setChangingSavedType] = useState(false)
   useEffect(() => {
     if (open) {
       setType(reservation?.type || startingType || null)
       setDraft(null)
       setPendingFiles([])
       setAutomatedTransitPlanning(false)
+      setChangingSavedType(false)
     }
-  }, [open, reservation, startingType, startingCategory])
+  }, [open, reservation, startingType])
   const kind = reservationFormKind(type)
   const Form =
     kind === 'multi-endpoint-transport'
@@ -79,6 +79,37 @@ export function ReservationEditor({
               ? SingleDateBookingForm
               : MultiDateBookingForm
   const title = reservation ? `Edit ${getType(type).label}` : 'New Reservation'
+  const changeNewReservationType = () => {
+    setType(null)
+    setDraft(null)
+    setAutomatedTransitPlanning(false)
+  }
+  const typeCategory = type ? getReservationPresentation(type).category : undefined
+  const canChangeSavedType = Boolean(
+    reservation &&
+    type !== 'transit' &&
+    typeCategory &&
+    getReservationPresentation(reservation).getProvenance(reservation).kind !== 'synced',
+  )
+  const selectSavedReservationType = async (nextType: string) => {
+    if (!type || nextType === type) {
+      setChangingSavedType(false)
+      return
+    }
+    if (reservationFormKind(nextType) !== reservationFormKind(type)) {
+      const confirmed = await window.trek.confirm({
+        title: 'Change reservation type?',
+        message: 'Some type-specific details may be cleared. Common reservation details will be kept.',
+        confirmLabel: 'Change type',
+        cancelLabel: 'Cancel',
+      })
+      if (!confirmed) return
+    }
+    setType(nextType)
+    setDraft(null)
+    setAutomatedTransitPlanning(false)
+    setChangingSavedType(false)
+  }
   const save = async (createCost: boolean = false) => {
     if (!tripId || !draft || saving) return
     setSaving(true)
@@ -147,7 +178,7 @@ export function ReservationEditor({
           <button type="button" onClick={onClose} className="trek-btn trek-btn--secondary px-4 py-2 text-xs">
             Cancel
           </button>
-          {!(type === 'transit' && (!reservation || automatedTransitPlanning)) ? (
+          {type && !changingSavedType && !(type === 'transit' && (!reservation || automatedTransitPlanning)) ? (
             <button
               type="button"
               disabled={!draft || saving || !draft.title.trim()}
@@ -165,28 +196,32 @@ export function ReservationEditor({
           <span className="mb-[5px] block text-[11px] font-semibold uppercase tracking-[0.03em] text-content-faint">
             Reservation type
           </span>
-          {reservation?.type === 'transit' ? (
-            <div className="flex min-h-10 items-center gap-2 rounded-xl border border-[rgba(124,58,237,0.25)] bg-[rgba(124,58,237,0.08)] px-3 text-sm font-semibold text-content">
-              <span className="size-2 rounded-full bg-[#7c3aed]" />
-              Public transit
-            </div>
+          {type && !changingSavedType ? (
+            <ReservationIdentity
+              type={type}
+              reservation={reservation}
+              onChangeType={
+                reservation
+                  ? canChangeSavedType
+                    ? () => setChangingSavedType(true)
+                    : undefined
+                  : changeNewReservationType
+              }
+            />
           ) : (
             <ReservationTypeSelector
-              key={`${open}-${reservation?.id ?? 'new'}`}
-              value={type || undefined}
-              startingValue={reservation?.type || startingType}
-              startingCategory={reservation ? undefined : startingCategory}
-              showBackButton={!reservation && !startingCategory}
-              onChange={setType}
+              category={changingSavedType ? typeCategory : undefined}
+              onChange={changingSavedType ? selectSavedReservationType : setType}
+              onCancel={changingSavedType ? () => setChangingSavedType(false) : undefined}
             />
           )}
         </div>
         {type ? (
-          <Form key={kind} {...props} />
-        ) : (
-          <p className="m-0 text-sm text-content-muted">Choose a reservation type to continue.</p>
-        )}
-        {type && type !== 'transit' && (
+          <div className={changingSavedType ? 'hidden' : undefined}>
+            <Form key={type} {...props} />
+          </div>
+        ) : null}
+        {type && !changingSavedType && type !== 'transit' && (
           <div className="mt-5 border-t border-edge-faint pt-4">
             <ReservationFilesSection
               files={
@@ -223,5 +258,45 @@ export function ReservationEditor({
         )}
       </div>
     </Modal>
+  )
+}
+
+function ReservationIdentity({
+  type,
+  reservation,
+  onChangeType,
+}: {
+  type: string
+  reservation: Reservation | null
+  onChangeType?: () => void
+}) {
+  const presentation = getReservationPresentation(reservation || type)
+  const isTransit = type === 'transit'
+
+  return (
+    <div
+      className={`flex min-h-11 items-center gap-2.5 rounded-xl border px-3 text-sm font-semibold ${
+        isTransit
+          ? 'border-[rgba(124,58,237,0.25)] bg-[rgba(124,58,237,0.08)] text-content'
+          : 'border-edge bg-surface-card text-content'
+      }`}
+    >
+      <presentation.Icon
+        className={isTransit ? 'shrink-0 text-[#7c3aed]' : 'shrink-0'}
+        style={isTransit ? undefined : { color: presentation.color }}
+        size={16}
+        aria-hidden="true"
+      />
+      <span>{presentation.label}</span>
+      {onChangeType ? (
+        <button
+          type="button"
+          onClick={onChangeType}
+          className="trek-btn trek-btn--ghost ml-auto shrink-0 px-2 py-1 text-xs font-semibold"
+        >
+          Change
+        </button>
+      ) : null}
+    </div>
   )
 }

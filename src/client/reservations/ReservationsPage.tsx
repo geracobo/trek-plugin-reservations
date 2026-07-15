@@ -8,7 +8,6 @@ import { ReservationTableView } from './table/ReservationTableView'
 import { ReservationBrowseToolbar } from './browse/ReservationBrowseToolbar'
 import { useReservationBrowse } from './browse/useReservationBrowse'
 import { ReservationEditor } from './editor/ReservationEditor'
-import type { ReservationTypeCategory } from './editor/ReservationTypeSelector'
 
 interface ReservationsPageState {
   tripId: number | null
@@ -420,15 +419,6 @@ export function ReservationsPage() {
         open={dialogOpen}
         tripId={pageState.tripId}
         reservation={editingReservation}
-        startingCategory={
-          editingReservation
-            ? undefined
-            : ((browse.category === 'transportation'
-                ? 'transit'
-                : browse.category === 'all'
-                  ? undefined
-                  : browse.category) as ReservationTypeCategory | undefined)
-        }
         days={pageState.days}
         places={pageState.places}
         accommodations={pageState.accommodations}
