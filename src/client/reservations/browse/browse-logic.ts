@@ -5,7 +5,7 @@ import { getReservationPresentation, type ReservationPresentationContext } from 
 export type ReservationCategory = 'all' | 'transportation' | 'accommodation' | 'booking'
 export type ReservationSortKey = 'date' | 'title' | 'type' | 'status'
 export type SortDirection = 'asc' | 'desc'
-export type ReservationGroupBy = 'status' | 'date' | 'type' | 'none'
+export type ReservationGroupBy = 'status' | 'date' | 'type' | 'category' | 'none'
 
 export function sortReservations(
   reservations: Reservation[],
@@ -33,6 +33,12 @@ export interface ReservationGroup {
   reservations: Reservation[]
 }
 
+const CATEGORY_LABELS = {
+  transportation: 'Transportation',
+  accommodation: 'Accommodation',
+  booking: 'Booking',
+} as const
+
 export function groupReservations(
   reservations: Reservation[],
   groupBy: ReservationGroupBy,
@@ -46,7 +52,9 @@ export function groupReservations(
         ? reservationStatus(reservation)
         : groupBy === 'type'
           ? reservation.type || 'other'
-          : getReservationPresentation(reservation).getStart(reservation, context)?.slice(0, 10) || 'unscheduled'
+          : groupBy === 'category'
+            ? getReservationPresentation(reservation).category
+            : getReservationPresentation(reservation).getStart(reservation, context)?.slice(0, 10) || 'unscheduled'
     const title =
       groupBy === 'status'
         ? reservationStatus(reservation) === 'confirmed'
@@ -54,14 +62,16 @@ export function groupReservations(
           : 'Pending'
         : groupBy === 'type'
           ? getType(reservation.type).label
-          : key === 'unscheduled'
-            ? 'Unscheduled'
-            : new Date(`${key}T00:00:00Z`).toLocaleDateString(undefined, {
-                weekday: 'short',
-                day: 'numeric',
-                month: 'short',
-                timeZone: 'UTC',
-              })
+          : groupBy === 'category'
+            ? CATEGORY_LABELS[getReservationPresentation(reservation).category]
+            : key === 'unscheduled'
+              ? 'Unscheduled'
+              : new Date(`${key}T00:00:00Z`).toLocaleDateString(undefined, {
+                  weekday: 'short',
+                  day: 'numeric',
+                  month: 'short',
+                  timeZone: 'UTC',
+                })
     const group = groups.get(key) || { key, title, reservations: [] }
     group.reservations.push(reservation)
     groups.set(key, group)

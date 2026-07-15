@@ -73,6 +73,7 @@ export function ReservationDisplayMenu(props: ReservationDisplayMenuProps) {
             ['status', 'Status'],
             ['date', 'Date'],
             ['type', 'Type'],
+            ['category', 'Category'],
             ['none', 'No grouping'],
           ] as const
         ).map(([key, label]) => (
