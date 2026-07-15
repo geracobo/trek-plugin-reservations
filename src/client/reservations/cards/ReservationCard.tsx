@@ -9,7 +9,7 @@ interface ReservationCardProps {
   trip: Trip | null
   days: Day[]
   accommodations: Accommodation[]
-  visibleFields: Set<CardFieldKey>
+  selectedFields: Set<CardFieldKey>
   onEdit: (reservation: Reservation) => void
   onDelete: (reservation: Reservation) => void
 }
@@ -19,7 +19,7 @@ export function ReservationCard({
   trip,
   days,
   accommodations,
-  visibleFields,
+  selectedFields,
   onEdit,
   onDelete,
 }: ReservationCardProps) {
@@ -38,7 +38,7 @@ export function ReservationCard({
         trip={trip}
         days={days}
         accommodations={accommodations}
-        visibleFields={visibleFields}
+        selectedFields={selectedFields}
       />
     </article>
   )

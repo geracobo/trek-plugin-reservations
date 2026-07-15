@@ -1,8 +1,8 @@
-import { ExternalLink, FileText, Hotel, MapPin, Plane, StickyNote } from 'lucide-react'
+import { ExternalLink, FileText, MapPin, Plane, StickyNote } from 'lucide-react'
 import type { Accommodation, Day, Reservation, Trip } from '../types'
-import { getType, metadataFields, reservationDateRange, reservationTimeRange } from '../model'
-import { ReservationCardField } from './ReservationCardField'
-import { ReservationCardRoute, ReservationCardSchedule } from './ReservationCardSchedule'
+import { getType } from '../model'
+import { getReservationPresentation } from '../presentation'
+import { ReservationCardField, ReservationCardFieldRoute } from './ReservationCardFields'
 import type { CardFieldKey } from './ReservationCardSections'
 
 interface ReservationCardDetailsProps {
@@ -10,7 +10,7 @@ interface ReservationCardDetailsProps {
   trip: Trip | null
   days: Day[]
   accommodations: Accommodation[]
-  visibleFields: Set<CardFieldKey>
+  selectedFields: Set<CardFieldKey>
 }
 
 export function ReservationCardDetails({
@@ -18,72 +18,58 @@ export function ReservationCardDetails({
   trip,
   days,
   accommodations,
-  visibleFields,
+  selectedFields,
 }: ReservationCardDetailsProps) {
-  const isFlight = reservation.type === 'flight'
-  const fields = metadataFields(reservation).slice(0, 8)
-  const locationField = fields.find((field) => field.label === 'Location')
-  const detailFields = fields.filter((field) => field.label !== 'Location')
+  const presentation = getReservationPresentation(reservation)
+  const context = { days, accommodations, trip }
+  const detailFields = presentation.getDetailFields(reservation, context).slice(0, 8)
+  const location = presentation.getLocation(reservation, { days, accommodations })
   const attachedFiles = reservation.files ?? []
   const url = reservation.url || reservation.booking_url
   const TypeIcon = getType(reservation.type).Icon
+  const scheduleContent = presentation.getScheduleContent(reservation, context)
+  const tripDaysContent = presentation.getTripDaysContent(reservation, context)
 
   return (
     <div className="flex flex-1 flex-col gap-3 p-3.5">
-      <ReservationCardSchedule
-        reservation={reservation}
-        trip={trip}
-        days={days}
-        accommodations={accommodations}
-        visibleFields={visibleFields}
-      />
+      {selectedFields.has('tripDays') ? (
+        <ReservationCardField label="Trip days" value={tripDaysContent} centered />
+      ) : null}
 
-      {!isFlight && (visibleFields.has('schedule') || visibleFields.has('details')) ? (
+      {selectedFields.has('schedule') ? (
+        <ReservationCardField label="Schedule" value={scheduleContent} centered />
+      ) : null}
+
+      {selectedFields.has('details') && (reservation.confirmation_number || detailFields.length > 0) ? (
         <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-2.5">
-          {visibleFields.has('schedule') ? (
-            <>
-              <ReservationCardField label="Date" value={reservationDateRange(reservation)} centered />
-              <ReservationCardField label="Time" value={reservationTimeRange(reservation)} centered />
-            </>
-          ) : null}
-          {visibleFields.has('details') ? (
-            <>
-              <ReservationCardField label="Confirmation code" value={reservation.confirmation_number} mono />
-              {detailFields.map((field) => (
-                <ReservationCardField
-                  key={`${field.label}-${field.value}`}
-                  label={field.label}
-                  value={field.value}
-                  Icon={field.label === 'Accommodation' ? Hotel : undefined}
-                />
-              ))}
-            </>
-          ) : null}
+          <ReservationCardField label="Confirmation code" value={reservation.confirmation_number} mono centered />
+          {detailFields.map(({ key, cardWidth, cardAlignment, ...field }) => (
+            <ReservationCardField
+              key={key}
+              {...field}
+              centered={cardAlignment === 'center'}
+              className={cardWidth === 'full' ? 'col-span-full' : ''}
+            />
+          ))}
         </div>
       ) : null}
 
-      {visibleFields.has('location') && locationField ? (
-        <ReservationCardField label={locationField.label} value={locationField.value} Icon={MapPin} />
+      {selectedFields.has('location') && location ? (
+        <ReservationCardField label="Location" value={location} Icon={MapPin} />
       ) : null}
 
-      {visibleFields.has('location') ? (
-        <ReservationCardRoute reservation={reservation} Icon={TypeIcon || Plane} />
+      {selectedFields.has('location') ? (
+        <ReservationCardFieldRoute
+          reservation={reservation}
+          Icon={TypeIcon || Plane}
+          days={days}
+          accommodations={accommodations}
+        />
       ) : null}
 
-      {visibleFields.has('files') && attachedFiles.length > 0 ? <ReservationCardFiles files={attachedFiles} /> : null}
+      {selectedFields.has('files') && attachedFiles.length > 0 ? <ReservationCardFiles files={attachedFiles} /> : null}
 
-      {visibleFields.has('location') &&
-      !isFlight &&
-      reservation.type !== 'hotel' &&
-      reservation.location &&
-      !locationField ? (
-        <div className="flex min-w-0 items-start gap-[7px] text-[12.5px] leading-[1.45] text-content-muted">
-          <MapPin className="mt-0.5 shrink-0 text-content-faint" size={14} />
-          <span>{reservation.location}</span>
-        </div>
-      ) : null}
-
-      {visibleFields.has('notes') && reservation.notes ? (
+      {selectedFields.has('notes') && reservation.notes ? (
         <div className="flex min-w-0 items-start gap-[7px] text-[12.5px] leading-[1.45] text-content-muted">
           <StickyNote className="mt-0.5 shrink-0 text-content-faint" size={14} />
           <p className="m-0 whitespace-pre-wrap [overflow-wrap:anywhere]">{reservation.notes}</p>

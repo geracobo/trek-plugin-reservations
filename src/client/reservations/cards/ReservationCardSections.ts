@@ -1,6 +1,7 @@
-export type CardFieldKey = 'schedule' | 'details' | 'location' | 'files' | 'notes'
+export type CardFieldKey = 'tripDays' | 'schedule' | 'details' | 'location' | 'files' | 'notes'
 
 export const CARD_FIELDS: Array<{ key: CardFieldKey; label: string }> = [
+  { key: 'tripDays', label: 'Trip days' },
   { key: 'schedule', label: 'Schedule' },
   { key: 'details', label: 'Details' },
   { key: 'location', label: 'Location & route' },

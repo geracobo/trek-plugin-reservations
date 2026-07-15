@@ -1,5 +1,6 @@
 import type { Reservation } from '../types'
-import { getType, reservationDate, reservationStatus, reservationTitle } from '../model'
+import { getType, reservationStatus, reservationTitle } from '../model'
+import { getReservationPresentation, type ReservationPresentationContext } from '../presentation'
 
 export type ReservationCategory = 'all' | 'transportation' | 'accommodation' | 'booking'
 export type ReservationSortKey = 'date' | 'title' | 'type' | 'status'
@@ -10,6 +11,7 @@ export function sortReservations(
   reservations: Reservation[],
   sortKey: ReservationSortKey,
   sortDirection: SortDirection,
+  context: ReservationPresentationContext,
 ) {
   const direction = sortDirection === 'asc' ? 1 : -1
   return reservations.slice().sort((a, b) => {
@@ -17,7 +19,7 @@ export function sortReservations(
       if (sortKey === 'title') return reservationTitle(reservation).toLocaleLowerCase()
       if (sortKey === 'type') return getType(reservation.type).label.toLocaleLowerCase()
       if (sortKey === 'status') return reservationStatus(reservation)
-      return reservationDate(reservation) || '9999-12-31'
+      return getReservationPresentation(reservation).getStart(reservation, context) || '9999-12-31'
     }
     const result = value(a).localeCompare(value(b))
     if (result) return result * direction
@@ -31,7 +33,11 @@ export interface ReservationGroup {
   reservations: Reservation[]
 }
 
-export function groupReservations(reservations: Reservation[], groupBy: ReservationGroupBy): ReservationGroup[] {
+export function groupReservations(
+  reservations: Reservation[],
+  groupBy: ReservationGroupBy,
+  context: ReservationPresentationContext,
+): ReservationGroup[] {
   if (groupBy === 'none') return [{ key: 'all', title: 'All reservations', reservations }]
   const groups = new Map<string, ReservationGroup>()
   for (const reservation of reservations) {
@@ -40,7 +46,7 @@ export function groupReservations(reservations: Reservation[], groupBy: Reservat
         ? reservationStatus(reservation)
         : groupBy === 'type'
           ? reservation.type || 'other'
-          : reservationDate(reservation) || 'unscheduled'
+          : getReservationPresentation(reservation).getStart(reservation, context)?.slice(0, 10) || 'unscheduled'
     const title =
       groupBy === 'status'
         ? reservationStatus(reservation) === 'confirmed'

@@ -44,7 +44,7 @@ interface ReservationBrowseToolbarProps {
   sortDirection: SortDirection
   groupBy: ReservationGroupBy
   visibleColumns: Set<TableColumnKey>
-  visibleCardFields: Set<CardFieldKey>
+  selectedCardFields: Set<CardFieldKey>
   hasActiveFilters: boolean
   onCategoryChange: (category: ReservationCategory) => void
   onViewModeChange: (viewMode: ViewMode) => void
@@ -265,7 +265,7 @@ export function ReservationBrowseToolbar(props: ReservationBrowseToolbarProps) {
               sortDirection={props.sortDirection}
               groupBy={props.groupBy}
               visibleColumns={props.visibleColumns}
-              visibleCardFields={props.visibleCardFields}
+              selectedCardFields={props.selectedCardFields}
               onSortChange={props.onSortChange}
               onGroupChange={props.onGroupChange}
               onColumnToggle={props.onColumnToggle}
@@ -359,7 +359,7 @@ export function ReservationBrowseToolbar(props: ReservationBrowseToolbarProps) {
                 sortDirection={props.sortDirection}
                 groupBy={props.groupBy}
                 visibleColumns={props.visibleColumns}
-                visibleCardFields={props.visibleCardFields}
+                selectedCardFields={props.selectedCardFields}
                 onSortChange={props.onSortChange}
                 onGroupChange={props.onGroupChange}
                 onColumnToggle={props.onColumnToggle}

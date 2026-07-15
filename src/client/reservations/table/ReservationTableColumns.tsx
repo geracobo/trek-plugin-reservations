@@ -1,44 +1,28 @@
 import { FileText, Files } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { Reservation, ReservationFile } from '../types'
-import { getType, reservationRoute, reservationTimeRange, reservationTitle, TRANSPORT_TYPES } from '../model'
+import { getType } from '../model'
 import { openReservationFile, reservationFileName } from '../attachments/ReservationAttachments'
+import {
+  getReservationPresentation,
+  reservationPresentationContentText,
+  type ReservationPresentationContext,
+} from '../presentation'
 
-export const TABLE_COLUMN_KEYS = ['type', 'status', 'title', 'date', 'time', 'route', 'code', 'files'] as const
+export const TABLE_COLUMN_KEYS = ['type', 'status', 'title', 'schedule', 'route', 'code', 'files'] as const
 
 export type TableColumnKey = (typeof TABLE_COLUMN_KEYS)[number]
 
 export interface ReservationTableColumnContext {
   onEdit: (reservation: Reservation) => void
   onShowFiles: (files: ReservationFile[]) => void
+  presentation: ReservationPresentationContext
 }
 
 export interface ReservationTableColumn {
   key: TableColumnKey
   label: string
   render: (reservation: Reservation, context: ReservationTableColumnContext) => ReactNode
-}
-
-function tableDateRange(reservation: Reservation) {
-  const format = (value: string | null | undefined) => {
-    if (!value) return ''
-    try {
-      return new Date(`${value}T00:00:00Z`).toLocaleDateString(undefined, {
-        day: 'numeric',
-        month: 'short',
-        timeZone: 'UTC',
-      })
-    } catch {
-      return value
-    }
-  }
-  const start = reservation.reservation_time?.split(/[T ]/)[0]
-  const end = reservation.reservation_end_time?.split(/[T ]/)[0]
-  const formattedStart = format(start)
-  const formattedEnd = format(end)
-  return formattedStart && formattedEnd && start !== end
-    ? `${formattedStart} – ${formattedEnd}`
-    : formattedStart || formattedEnd
 }
 
 function StatusBadge({ reservation }: { reservation: Reservation }) {
@@ -75,42 +59,41 @@ export const RESERVATION_TABLE_COLUMNS: ReservationTableColumn[] = [
   {
     key: 'title',
     label: 'Title',
-    render: (reservation, { onEdit }) => (
-      <>
-        <button
-          type="button"
-          className="inline-block max-w-[230px] cursor-pointer truncate border-0 bg-transparent p-0 text-left font-bold text-content"
-          onClick={() => onEdit(reservation)}
-        >
-          {reservationTitle(reservation)}
-        </button>
-        {reservation.needs_review ? (
-          <span className="ml-[7px] inline-flex rounded-full bg-[var(--warning-soft)] px-1.5 py-0.5 align-top text-[10px] font-extrabold text-warning">
-            Needs review
-          </span>
-        ) : null}
-      </>
-    ),
+    render: (reservation, { onEdit, presentation }) => {
+      const definition = getReservationPresentation(reservation)
+      return (
+        <>
+          <button
+            type="button"
+            className="inline-block max-w-[230px] cursor-pointer truncate border-0 bg-transparent p-0 text-left font-bold text-content"
+            onClick={() => onEdit(reservation)}
+          >
+            {definition.getTitle(reservation, presentation)}
+          </button>
+          {reservation.needs_review ? (
+            <span className="ml-[7px] inline-flex rounded-full bg-[var(--warning-soft)] px-1.5 py-0.5 align-top text-[10px] font-extrabold text-warning">
+              Needs review
+            </span>
+          ) : null}
+        </>
+      )
+    },
   },
   {
-    key: 'date',
-    label: 'Date',
-    render: (reservation) => tableDateRange(reservation) || <span className="font-normal text-content-faint">—</span>,
-  },
-  {
-    key: 'time',
-    label: 'Time',
-    render: (reservation) => reservationTimeRange(reservation) || <span className="text-content-faint">-</span>,
+    key: 'schedule',
+    label: 'Schedule',
+    render: (reservation, { presentation }) =>
+      reservationPresentationContentText(
+        getReservationPresentation(reservation).getScheduleContent(reservation, presentation),
+      ) || <span className="font-normal text-content-faint">—</span>,
   },
   {
     key: 'route',
-    label: 'Locations',
-    render: (reservation) => {
-      const route = reservationRoute(reservation)
-      const routeOrPlace =
-        TRANSPORT_TYPES.has(reservation.type ?? '') && route.length >= 2
-          ? route.join(' → ')
-          : reservation.location || reservation.accommodation_name || reservation.place_name || ''
+    label: 'Where',
+    render: (reservation, { presentation }) => {
+      const definition = getReservationPresentation(reservation)
+      const route = definition.getRoute(reservation, presentation)
+      const routeOrPlace = route.length >= 2 ? route.join(' → ') : definition.getLocation(reservation, presentation)
       return routeOrPlace || <span className="text-content-faint">—</span>
     },
   },

@@ -17,7 +17,7 @@ interface ReservationDisplayMenuProps {
   sortDirection: SortDirection
   groupBy: ReservationGroupBy
   visibleColumns: Set<TableColumnKey>
-  visibleCardFields: Set<CardFieldKey>
+  selectedCardFields: Set<CardFieldKey>
   onSortChange: (key: ReservationSortKey, direction: SortDirection) => void
   onGroupChange: (groupBy: ReservationGroupBy) => void
   onColumnToggle: (column: TableColumnKey) => void
@@ -103,7 +103,7 @@ export function ReservationDisplayMenu(props: ReservationDisplayMenuProps) {
             <ToggleRow
               key={field.key}
               label={field.label}
-              checked={props.visibleCardFields.has(field.key)}
+              checked={props.selectedCardFields.has(field.key)}
               onClick={() => props.onCardFieldToggle(field.key)}
             />
           ))}

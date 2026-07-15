@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
-import type { Reservation, Trip } from '../types'
-import { getType, reservationDate, reservationTitle } from '../model'
+import type { Accommodation, Day, Reservation, Trip } from '../types'
+import { getType, reservationTitle } from '../model'
+import { getReservationPresentation, type ReservationPresentationContext } from '../presentation'
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-function firstReservationMonth(reservations: Reservation[]) {
-  const first = reservations.map(reservationDate).filter(Boolean).sort()[0]
+function firstReservationMonth(reservations: Reservation[], context: ReservationPresentationContext) {
+  const first = reservations
+    .map((reservation) => getReservationPresentation(reservation).getStart(reservation, context)?.slice(0, 10) || '')
+    .filter(Boolean)
+    .sort()[0]
   if (first) {
     const [year, month] = first.split('-').map(Number)
     if (year && month) return new Date(Date.UTC(year, month - 1, 1))
@@ -26,9 +30,10 @@ function dateKey(date: Date) {
   return date.toISOString().slice(0, 10)
 }
 
-function reservationDateKeys(reservation: Reservation) {
-  const start = reservationDate(reservation)
-  const end = reservation.reservation_end_time?.split(/[T ]/)[0] || start
+function reservationDateKeys(reservation: Reservation, context: ReservationPresentationContext) {
+  const presentation = getReservationPresentation(reservation)
+  const start = presentation.getStart(reservation, context)?.slice(0, 10)
+  const end = presentation.getEnd(reservation, context)?.slice(0, 10) || start
   if (!start) return []
   const startDate = new Date(`${start}T00:00:00Z`)
   const endDate = new Date(`${end}T00:00:00Z`)
@@ -45,13 +50,18 @@ function reservationDateKeys(reservation: Reservation) {
 export function ReservationCalendarView({
   reservations,
   trip,
+  days,
+  accommodations,
   onEdit,
 }: {
   reservations: Reservation[]
   trip: Trip | null
+  days: Day[]
+  accommodations: Accommodation[]
   onEdit: (reservation: Reservation) => void
 }) {
-  const initialMonth = useMemo(() => firstReservationMonth(reservations), [reservations])
+  const context = useMemo(() => ({ days, accommodations }), [days, accommodations])
+  const initialMonth = useMemo(() => firstReservationMonth(reservations, context), [reservations, context])
   const startMonth = useMemo(() => tripStartMonth(trip), [trip])
   const [month, setMonth] = useState(initialMonth)
 
@@ -60,15 +70,15 @@ export function ReservationCalendarView({
   const reservationsByDate = useMemo(
     () =>
       reservations.reduce<Record<string, Reservation[]>>((byDate, reservation) => {
-        reservationDateKeys(reservation).forEach((key) => {
+        reservationDateKeys(reservation, context).forEach((key) => {
           ;(byDate[key] ??= []).push(reservation)
         })
         return byDate
       }, {}),
-    [reservations],
+    [reservations, context],
   )
 
-  const days = useMemo(() => {
+  const calendarDays = useMemo(() => {
     const first = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth(), 1))
     const mondayOffset = (first.getUTCDay() + 6) % 7
     const start = new Date(first)
@@ -130,7 +140,7 @@ export function ReservationCalendarView({
             {weekday}
           </div>
         ))}
-        {days.map((date) => {
+        {calendarDays.map((date) => {
           const key = dateKey(date)
           const entries = reservationsByDate[key] ?? []
           const outsideMonth = date.getUTCMonth() !== month.getUTCMonth()

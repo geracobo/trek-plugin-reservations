@@ -336,7 +336,7 @@ export function ReservationsPage() {
         sortDirection={browse.sortDirection}
         groupBy={browse.groupBy}
         visibleColumns={browse.visibleColumns}
-        visibleCardFields={browse.visibleCardFields}
+        selectedCardFields={browse.selectedCardFields}
         hasActiveFilters={browse.hasActiveFilters}
         onCategoryChange={browse.selectCategory}
         onViewModeChange={browse.setViewMode}
@@ -375,6 +375,8 @@ export function ReservationsPage() {
       ) : browse.viewMode === 'table' ? (
         <ReservationTableView
           reservations={browse.filteredReservations}
+          days={pageState.days}
+          accommodations={pageState.accommodations}
           visibleColumns={browse.visibleColumns}
           groupBy={browse.groupBy}
           onEdit={openEditReservation}
@@ -384,6 +386,8 @@ export function ReservationsPage() {
         <ReservationCalendarView
           reservations={browse.filteredReservations}
           trip={pageState.trip}
+          days={pageState.days}
+          accommodations={pageState.accommodations}
           onEdit={openEditReservation}
         />
       ) : (
@@ -393,7 +397,7 @@ export function ReservationsPage() {
           days={pageState.days}
           accommodations={pageState.accommodations}
           groupBy={browse.groupBy}
-          visibleFields={browse.visibleCardFields}
+          selectedFields={browse.selectedCardFields}
           onEdit={openEditReservation}
           onDelete={deleteReservation}
         />

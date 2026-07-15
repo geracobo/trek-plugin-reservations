@@ -12,7 +12,7 @@ interface ReservationCardViewProps {
   days: Day[]
   accommodations: Accommodation[]
   groupBy: ReservationGroupBy
-  visibleFields: Set<CardFieldKey>
+  selectedFields: Set<CardFieldKey>
   onEdit: (reservation: Reservation) => void
   onDelete: (reservation: Reservation) => void
 }
@@ -23,11 +23,11 @@ export function ReservationCardView({
   days,
   accommodations,
   groupBy,
-  visibleFields,
+  selectedFields,
   onEdit,
   onDelete,
 }: ReservationCardViewProps) {
-  const groups = groupReservations(reservations, groupBy)
+  const groups = groupReservations(reservations, groupBy, { days, accommodations })
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set())
 
   const toggleGroup = (key: string) => {
@@ -49,7 +49,7 @@ export function ReservationCardView({
             trip={trip}
             days={days}
             accommodations={accommodations}
-            visibleFields={visibleFields}
+            selectedFields={selectedFields}
             onEdit={onEdit}
             onDelete={onDelete}
           />
@@ -86,7 +86,7 @@ export function ReservationCardView({
                 trip={trip}
                 days={days}
                 accommodations={accommodations}
-                visibleFields={visibleFields}
+                selectedFields={selectedFields}
                 onEdit={onEdit}
                 onDelete={onDelete}
               />

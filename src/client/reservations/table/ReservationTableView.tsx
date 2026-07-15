@@ -1,6 +1,6 @@
 import { Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import type { Reservation, ReservationFile } from '../types'
+import type { Accommodation, Day, Reservation, ReservationFile } from '../types'
 import { ReservationAttachmentDialog } from '../attachments/ReservationAttachments'
 import { groupReservations } from '../browse/browse-logic'
 import type { ReservationGroupBy } from '../browse/browse-logic'
@@ -9,6 +9,8 @@ import type { TableColumnKey } from './ReservationTableColumns'
 
 interface ReservationTableViewProps {
   reservations: Reservation[]
+  days: Day[]
+  accommodations: Accommodation[]
   visibleColumns: Set<TableColumnKey>
   groupBy: ReservationGroupBy
   onEdit: (reservation: Reservation) => void
@@ -21,12 +23,14 @@ function ReservationTableRow({
   onEdit,
   onDelete,
   onShowFiles,
+  presentation,
 }: {
   reservation: Reservation
   visibleColumns: Set<TableColumnKey>
   onEdit: (reservation: Reservation) => void
   onDelete: (reservation: Reservation) => void
   onShowFiles: (files: ReservationFile[]) => void
+  presentation: { days: Day[]; accommodations: Accommodation[] }
 }) {
   return (
     <tr>
@@ -36,9 +40,9 @@ function ReservationTableRow({
           className={
             column.key === 'title'
               ? 'max-w-[280px]'
-              : column.key === 'date'
+              : column.key === 'schedule'
                 ? 'whitespace-nowrap font-semibold text-content'
-                : column.key === 'time' || column.key === 'files'
+                : column.key === 'files'
                   ? 'whitespace-nowrap'
                   : column.key === 'route'
                     ? 'max-w-[260px] truncate text-content-muted'
@@ -47,7 +51,7 @@ function ReservationTableRow({
                       : undefined
           }
         >
-          {column.render(reservation, { onEdit, onShowFiles })}
+          {column.render(reservation, { onEdit, onShowFiles, presentation })}
         </td>
       ))}
       <td className="whitespace-nowrap text-center">
@@ -78,13 +82,16 @@ function ReservationTableRow({
 
 export function ReservationTableView({
   reservations,
+  days,
+  accommodations,
   visibleColumns,
   groupBy,
   onEdit,
   onDelete,
 }: ReservationTableViewProps) {
   const [filesPopup, setFilesPopup] = useState<ReservationFile[] | null>(null)
-  const groups = groupReservations(reservations, groupBy)
+  const presentation = { days, accommodations }
+  const groups = groupReservations(reservations, groupBy, presentation)
   return (
     <>
       <div className="trek-card overflow-auto rounded-xl p-0">
@@ -119,6 +126,7 @@ export function ReservationTableView({
                   onEdit={onEdit}
                   onDelete={onDelete}
                   onShowFiles={setFilesPopup}
+                  presentation={presentation}
                 />
               )),
             ])}

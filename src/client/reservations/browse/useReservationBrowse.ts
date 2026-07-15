@@ -15,11 +15,10 @@ import { DEFAULT_TABLE_COLUMNS } from '../table/ReservationTableColumns'
 import type { TableColumnKey } from '../table/ReservationTableColumns'
 import { sortReservations } from './browse-logic'
 import type { ReservationCategory, ReservationGroupBy, ReservationSortKey, SortDirection } from './browse-logic'
+import { getReservationPresentation } from '../presentation'
 
 function reservationCategory(reservation: Reservation): Exclude<ReservationCategory, 'all'> {
-  if (TRANSPORT_TYPES.has(reservation.type ?? '')) return 'transportation'
-  if (reservation.type === 'hotel') return 'accommodation'
-  return 'booking'
+  return getReservationPresentation(reservation).category
 }
 
 function countByType(reservations: Reservation[]) {
@@ -65,7 +64,7 @@ export function useReservationBrowse({
   const [cardGroupBy, setCardGroupBy] = useState<ReservationGroupBy>('status')
   const [tableGroupBy, setTableGroupBy] = useState<ReservationGroupBy>('none')
   const [visibleColumns, setVisibleColumns] = useState<Set<TableColumnKey>>(() => new Set(DEFAULT_TABLE_COLUMNS))
-  const [visibleCardFields, setVisibleCardFields] = useState<Set<CardFieldKey>>(() => new Set(DEFAULT_CARD_FIELDS))
+  const [selectedCardFields, setSelectedCardFields] = useState<Set<CardFieldKey>>(() => new Set(DEFAULT_CARD_FIELDS))
 
   const typeCounts = useMemo(() => countByType(reservations), [reservations])
   const categoryCounts = useMemo(
@@ -98,6 +97,7 @@ export function useReservationBrowse({
       ),
       sortKey,
       sortDirection,
+      { days, accommodations },
     )
   }, [reservations, category, selectedTypes, statusFilter, days, accommodations, search, sortKey, sortDirection])
 
@@ -128,7 +128,7 @@ export function useReservationBrowse({
     })
   }
   const toggleCardField = (field: CardFieldKey) => {
-    setVisibleCardFields((current) => {
+    setSelectedCardFields((current) => {
       const next = new Set(current)
       if (next.has(field)) next.delete(field)
       else next.add(field)
@@ -140,7 +140,7 @@ export function useReservationBrowse({
     setSortDirection('asc')
     if (viewMode === 'cards') {
       setCardGroupBy('status')
-      setVisibleCardFields(new Set(DEFAULT_CARD_FIELDS))
+      setSelectedCardFields(new Set(DEFAULT_CARD_FIELDS))
     } else if (viewMode === 'table') {
       setTableGroupBy('none')
       setVisibleColumns(new Set(DEFAULT_TABLE_COLUMNS))
@@ -157,7 +157,7 @@ export function useReservationBrowse({
     sortDirection,
     groupBy,
     visibleColumns,
-    visibleCardFields,
+    selectedCardFields,
     typeCounts,
     categoryCounts,
     secondaryTypes,

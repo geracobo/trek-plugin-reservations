@@ -72,8 +72,14 @@ export interface Accommodation {
 export interface ReservationEndpoint {
   id?: number
   name?: string
-  role?: string
+  role?: 'from' | 'to' | 'stop'
   sequence?: number
+  code?: string | null
+  lat?: number | null
+  lng?: number | null
+  timezone?: string | null
+  local_date?: string | null
+  local_time?: string | null
   [key: string]: unknown
 }
 
