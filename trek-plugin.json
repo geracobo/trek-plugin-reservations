@@ -9,7 +9,7 @@
   "description": "Enhanced reservation views for transportation and bookings",
   "icon": "BookMarked",
   "type": "trip-page",
-  "trek": ">=3.2.1 <4.0.0",
+  "trek": ">=3.3.0 <4.0.0",
   "nativeModules": false,
   "permissions": [
     "db:read:trips",
