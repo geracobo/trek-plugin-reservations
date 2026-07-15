@@ -5,7 +5,7 @@ const vite = path.resolve('node_modules/vite/bin/vite.js')
 const sdk = path.resolve('node_modules/trek-plugin-sdk/dist/cli/trek-plugin.js')
 const children = [
   spawn(process.execPath, [vite, 'build', '--watch'], { stdio: 'inherit' }),
-  spawn(process.execPath, [sdk, 'dev', 'build'], { stdio: 'inherit' }),
+  spawn(process.execPath, [sdk, 'dev', 'build/reservations'], { stdio: 'inherit' }),
 ]
 
 let stopping = false

@@ -6,7 +6,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 function injectTrekUi() {
-  const htmlPath = path.resolve('build/client/index.html')
+  const htmlPath = path.resolve('build/reservations/client/index.html')
 
   return {
     name: 'inject-trek-ui',
@@ -17,7 +17,7 @@ function injectTrekUi() {
 }
 
 function copyPluginFiles() {
-  const buildDir = path.resolve('build')
+  const buildDir = path.resolve('build/reservations')
 
   return {
     name: 'copy-plugin-files',
@@ -45,7 +45,7 @@ export default defineConfig({
   root: 'src/client',
   plugins: [react(), tailwindcss(), copyPluginFiles(), injectTrekUi()],
   build: {
-    outDir: path.resolve('build/client'),
+    outDir: path.resolve('build/reservations/client'),
     emptyOutDir: true,
   },
 })

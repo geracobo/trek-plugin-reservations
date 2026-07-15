@@ -6,11 +6,11 @@
   "scripts": {
     "build": "vite build",
     "dev": "npm run build && node scripts/dev.mjs",
-    "dev:sdk": "trek-plugin-sdk dev build",
+    "dev:sdk": "trek-plugin-sdk dev build/reservations",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "pack": "npm run build && npx -y trek-plugin-sdk pack build --out plugin.zip",
-    "validate": "npm run build && npx -y trek-plugin-sdk validate build"
+    "pack": "npm run build && npx -y trek-plugin-sdk pack build/reservations --out plugin.zip",
+    "validate": "npm run build && npx -y trek-plugin-sdk validate build/reservations"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.0",
