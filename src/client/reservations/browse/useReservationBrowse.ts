@@ -63,8 +63,12 @@ export function useReservationBrowse({
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [cardGroupBy, setCardGroupBy] = useState<ReservationGroupBy>('status')
   const [tableGroupBy, setTableGroupBy] = useState<ReservationGroupBy>('none')
+  const [timelineGroupBy, setTimelineGroupBy] = useState<ReservationGroupBy>('none')
   const [visibleColumns, setVisibleColumns] = useState<Set<TableColumnKey>>(() => new Set(DEFAULT_TABLE_COLUMNS))
   const [selectedCardFields, setSelectedCardFields] = useState<Set<CardFieldKey>>(() => new Set(DEFAULT_CARD_FIELDS))
+  const [selectedTimelineFields, setSelectedTimelineFields] = useState<Set<CardFieldKey>>(
+    () => new Set<CardFieldKey>(['schedule']),
+  )
 
   const typeCounts = useMemo(() => countByType(reservations), [reservations])
   const categoryCounts = useMemo(
@@ -101,7 +105,7 @@ export function useReservationBrowse({
     )
   }, [reservations, category, selectedTypes, statusFilter, days, accommodations, search, sortKey, sortDirection])
 
-  const groupBy = viewMode === 'table' ? tableGroupBy : cardGroupBy
+  const groupBy = viewMode === 'table' ? tableGroupBy : viewMode === 'timeline' ? timelineGroupBy : cardGroupBy
   const toggleType = (type: string) => {
     setSelectedTypes((current) => {
       const next = new Set(current)
@@ -144,6 +148,9 @@ export function useReservationBrowse({
     } else if (viewMode === 'table') {
       setTableGroupBy('none')
       setVisibleColumns(new Set(DEFAULT_TABLE_COLUMNS))
+    } else if (viewMode === 'timeline') {
+      setTimelineGroupBy('none')
+      setSelectedTimelineFields(new Set<CardFieldKey>(['schedule']))
     }
   }
 
@@ -158,6 +165,7 @@ export function useReservationBrowse({
     groupBy,
     visibleColumns,
     selectedCardFields,
+    selectedTimelineFields,
     typeCounts,
     categoryCounts,
     secondaryTypes,
@@ -174,10 +182,19 @@ export function useReservationBrowse({
     },
     setGroupBy: (nextGroupBy: ReservationGroupBy) => {
       if (viewMode === 'table') setTableGroupBy(nextGroupBy)
+      else if (viewMode === 'timeline') setTimelineGroupBy(nextGroupBy)
       else setCardGroupBy(nextGroupBy)
     },
     toggleColumn,
     toggleCardField,
+    toggleTimelineField: (field: CardFieldKey) => {
+      setSelectedTimelineFields((current) => {
+        const next = new Set(current)
+        if (next.has(field)) next.delete(field)
+        else next.add(field)
+        return next
+      })
+    },
     clearFilters,
     resetView,
   }

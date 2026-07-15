@@ -3,6 +3,7 @@ import {
   CalendarDays,
   ChevronDown,
   Filter,
+  GanttChart,
   Hotel,
   LayoutGrid,
   Plus,
@@ -45,6 +46,7 @@ interface ReservationBrowseToolbarProps {
   groupBy: ReservationGroupBy
   visibleColumns: Set<TableColumnKey>
   selectedCardFields: Set<CardFieldKey>
+  selectedTimelineFields: Set<CardFieldKey>
   hasActiveFilters: boolean
   onCategoryChange: (category: ReservationCategory) => void
   onViewModeChange: (viewMode: ViewMode) => void
@@ -55,6 +57,7 @@ interface ReservationBrowseToolbarProps {
   onGroupChange: (groupBy: ReservationGroupBy) => void
   onColumnToggle: (column: TableColumnKey) => void
   onCardFieldToggle: (field: CardFieldKey) => void
+  onTimelineFieldToggle: (field: CardFieldKey) => void
   onClearFilters: () => void
   onResetView: () => void
   onAddReservation: () => void
@@ -150,6 +153,12 @@ export function ReservationBrowseToolbar(props: ReservationBrowseToolbarProps) {
               label="Calendar"
               Icon={CalendarDays}
               onClick={() => props.onViewModeChange('calendar')}
+            />
+            <ViewButton
+              active={props.viewMode === 'timeline'}
+              label="Timeline"
+              Icon={GanttChart}
+              onClick={() => props.onViewModeChange('timeline')}
             />
           </div>
           <button
@@ -266,17 +275,19 @@ export function ReservationBrowseToolbar(props: ReservationBrowseToolbarProps) {
               groupBy={props.groupBy}
               visibleColumns={props.visibleColumns}
               selectedCardFields={props.selectedCardFields}
+              selectedTimelineFields={props.selectedTimelineFields}
               onSortChange={props.onSortChange}
               onGroupChange={props.onGroupChange}
               onColumnToggle={props.onColumnToggle}
               onCardFieldToggle={props.onCardFieldToggle}
+              onTimelineFieldToggle={props.onTimelineFieldToggle}
               onResetView={props.onResetView}
             />
           ) : null}
         </div>
         <div className="flex w-full flex-col gap-2.5 min-[721px]:hidden">
           <div
-            className="reservation-view-mode grid grid-cols-3 gap-[3px] rounded-[11px] bg-surface-muted p-[3px] [&_.trek-btn]:min-h-8 [&_.trek-btn]:justify-center [&_.trek-btn]:rounded-lg [&_.trek-btn]:px-2 [&_.trek-btn]:py-[5px] [&_.trek-btn]:text-xs"
+            className="reservation-view-mode grid grid-cols-2 gap-[3px] rounded-[11px] bg-surface-muted p-[3px] [&_.trek-btn]:min-h-8 [&_.trek-btn]:justify-center [&_.trek-btn]:rounded-lg [&_.trek-btn]:px-2 [&_.trek-btn]:py-[5px] [&_.trek-btn]:text-xs"
             aria-label="View mode"
           >
             <ViewButton
@@ -296,6 +307,12 @@ export function ReservationBrowseToolbar(props: ReservationBrowseToolbarProps) {
               label="Calendar"
               Icon={CalendarDays}
               onClick={() => props.onViewModeChange('calendar')}
+            />
+            <ViewButton
+              active={props.viewMode === 'timeline'}
+              label="Timeline"
+              Icon={GanttChart}
+              onClick={() => props.onViewModeChange('timeline')}
             />
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -360,10 +377,12 @@ export function ReservationBrowseToolbar(props: ReservationBrowseToolbarProps) {
                 groupBy={props.groupBy}
                 visibleColumns={props.visibleColumns}
                 selectedCardFields={props.selectedCardFields}
+                selectedTimelineFields={props.selectedTimelineFields}
                 onSortChange={props.onSortChange}
                 onGroupChange={props.onGroupChange}
                 onColumnToggle={props.onColumnToggle}
                 onCardFieldToggle={props.onCardFieldToggle}
+                onTimelineFieldToggle={props.onTimelineFieldToggle}
                 onResetView={props.onResetView}
               />
             </div>

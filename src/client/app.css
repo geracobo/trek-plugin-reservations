@@ -78,6 +78,86 @@ body,
   color: var(--text-primary);
 }
 
+/* Timeline grid lines are rendered by every day cell so they stay aligned
+   across reservation rows. Overflow gutters intentionally recede from the
+   trip-day surface. */
+.trek-card.reservation-timeline {
+  background: var(--bg-secondary);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.reservation-timeline::-webkit-scrollbar {
+  display: none;
+}
+
+.reservation-timeline-scrollbar {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
+  height: 28px;
+  border-top: 1px solid var(--border-primary);
+  background: var(--bg-primary);
+  cursor: pointer;
+}
+
+.reservation-timeline-scrollbar-thumb {
+  position: absolute;
+  top: 4px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--text-faint);
+  cursor: grab;
+}
+
+.reservation-timeline-scrollbar-thumb::before {
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  width: 2px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--bg-primary);
+  box-shadow:
+    -4px 0 var(--bg-primary),
+    4px 0 var(--bg-primary);
+  content: '';
+  transform: translateX(-50%);
+}
+
+.reservation-timeline-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.reservation-timeline-scrollbar-thumb:active {
+  cursor: grabbing;
+}
+
+.reservation-timeline-gutter {
+  border-left: 1px solid var(--border-faint);
+  background: var(--bg-primary);
+}
+
+.reservation-timeline-day {
+  border-left: 1px solid var(--border-faint);
+  background: var(--bg-secondary);
+}
+
+.reservation-timeline-header-day {
+  background: var(--bg-secondary);
+}
+
+.reservation-timeline-week-start {
+  border-left: 3px solid var(--border-primary);
+  box-shadow: inset 1px 0 var(--border-primary);
+}
+
+.reservation-timeline-row {
+  border-bottom-color: color-mix(in srgb, var(--border-faint) 55%, transparent);
+}
+
 /* -------------------------------------------------------------------------
  * From TREK: client/src/index.css (global interaction layer).
  *

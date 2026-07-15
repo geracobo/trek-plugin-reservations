@@ -3,6 +3,7 @@ import type { Accommodation, Cost, Day, Place, ReservationFile, ReservationsResp
 import { reservationTitle } from './model'
 import { ReservationCardView } from './cards/ReservationCardView'
 import { ReservationCalendarView } from './calendar/ReservationCalendarView'
+import { ReservationTimelineView } from './timeline/ReservationTimelineView'
 import { ReservationTableView } from './table/ReservationTableView'
 import { ReservationBrowseToolbar } from './browse/ReservationBrowseToolbar'
 import { useReservationBrowse } from './browse/useReservationBrowse'
@@ -337,6 +338,7 @@ export function ReservationsPage() {
         groupBy={browse.groupBy}
         visibleColumns={browse.visibleColumns}
         selectedCardFields={browse.selectedCardFields}
+        selectedTimelineFields={browse.selectedTimelineFields}
         hasActiveFilters={browse.hasActiveFilters}
         onCategoryChange={browse.selectCategory}
         onViewModeChange={browse.setViewMode}
@@ -347,6 +349,7 @@ export function ReservationsPage() {
         onGroupChange={browse.setGroupBy}
         onColumnToggle={browse.toggleColumn}
         onCardFieldToggle={browse.toggleCardField}
+        onTimelineFieldToggle={browse.toggleTimelineField}
         onClearFilters={browse.clearFilters}
         onResetView={browse.resetView}
         onAddReservation={openNewReservation}
@@ -388,6 +391,16 @@ export function ReservationsPage() {
           trip={pageState.trip}
           days={pageState.days}
           accommodations={pageState.accommodations}
+          onEdit={openEditReservation}
+        />
+      ) : browse.viewMode === 'timeline' ? (
+        <ReservationTimelineView
+          reservations={browse.filteredReservations}
+          trip={pageState.trip}
+          days={pageState.days}
+          accommodations={pageState.accommodations}
+          groupBy={browse.groupBy}
+          selectedFields={browse.selectedTimelineFields}
           onEdit={openEditReservation}
         />
       ) : (

@@ -18,10 +18,12 @@ interface ReservationDisplayMenuProps {
   groupBy: ReservationGroupBy
   visibleColumns: Set<TableColumnKey>
   selectedCardFields: Set<CardFieldKey>
+  selectedTimelineFields: Set<CardFieldKey>
   onSortChange: (key: ReservationSortKey, direction: SortDirection) => void
   onGroupChange: (groupBy: ReservationGroupBy) => void
   onColumnToggle: (column: TableColumnKey) => void
   onCardFieldToggle: (field: CardFieldKey) => void
+  onTimelineFieldToggle: (field: CardFieldKey) => void
   onResetView: () => void
   embedded?: boolean
 }
@@ -36,7 +38,7 @@ export function ReservationDisplayMenu(props: ReservationDisplayMenuProps) {
         aria-label={props.embedded ? undefined : 'View options'}
       >
         <p className="px-2 py-3 text-xs leading-relaxed text-content-faint">
-          Calendar entries are always placed by date. Display options are available in Cards and Table views.
+          Calendar entries are always placed by date. Display options are available in Cards, Table, and Timeline views.
         </p>
       </div>
     )
@@ -98,13 +100,19 @@ export function ReservationDisplayMenu(props: ReservationDisplayMenuProps) {
         </>
       ) : (
         <>
-          <OptionLabel label="Card fields" Icon={Eye} />
+          <OptionLabel label={props.viewMode === 'timeline' ? 'Timeline fields' : 'Card fields'} Icon={Eye} />
           {CARD_FIELDS.map((field) => (
             <ToggleRow
               key={field.key}
               label={field.label}
-              checked={props.selectedCardFields.has(field.key)}
-              onClick={() => props.onCardFieldToggle(field.key)}
+              checked={(props.viewMode === 'timeline' ? props.selectedTimelineFields : props.selectedCardFields).has(
+                field.key,
+              )}
+              onClick={() =>
+                props.viewMode === 'timeline'
+                  ? props.onTimelineFieldToggle(field.key)
+                  : props.onCardFieldToggle(field.key)
+              }
             />
           ))}
         </>

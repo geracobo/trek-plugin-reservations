@@ -156,5 +156,5 @@ export interface ReservationsResponse {
   costs: Cost[]
 }
 
-export type ViewMode = 'cards' | 'table' | 'calendar'
+export type ViewMode = 'cards' | 'table' | 'calendar' | 'timeline'
 export type StatusFilter = 'all' | 'confirmed' | 'pending'
