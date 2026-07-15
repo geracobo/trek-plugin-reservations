@@ -1,5 +1,13 @@
 # TREK Reservations Plugin
-Enhanced reservations module for TREK.
+
+**Every reservation, every view.**
+
+Reservations provides a unified workspace for managing transportation,
+accommodation, transit, and other trip bookings in TREK.
+
+View the same reservations as cards, a structured table, a calendar, or a
+timeline. Search, filter, sort, and group them without switching between
+separate trip sections.
 
 ## Screenshots
 
@@ -7,23 +15,22 @@ Enhanced reservations module for TREK.
 
 ## What it does
 
-Reservations gives each TREK trip a single workspace for transportation, accommodation, and other bookings.
+Reservations brings transportation, accommodation, transit, restaurants, events, tours, and other bookings into a single workspace.
 
-**Features**
-- Create and edit transportation, transit, accommodation, and general bookings.
-- View every reservation together instead of switching between the built-in **Transport** and **Book** tabs.
-- Switch between card, table, and calendar views.
-- Search reservations with free text, or filter them by the criteria you need.
+You can view the same reservation data in four different ways:
 
+- **Cards** for quick visual browsing
+- **Table** for dense, structured information
+- **Calendar** for date-based planning
+- **Timeline** for understanding duration and overlap
 
-**Current limitations**
+Every view supports the same search, filtering, sorting, and grouping tools, so you can organize reservations without switching between separate trip sections.
 
-- KItinerary-backed import from file. LLM-backed is more likely through the plugin SDK, but PDF parsing and OCR would have to be handled by our plugin. Maintaining a separate independent interface with an AI platform would be the other option.
-- Linked-item navigation. For example with linked costs. Until a navigation API is implemented on the plugin SDK (with resource referencing like costId, fileId), it will not be possible.
-- Managing file links on reservations. SDK has exposed only a way to create file links, but not how to edit/delete them from the `file_links` table.
-- Managing plugin settings. In our case we need a Google Places API key to replicate the current functionality. Instance-scoped settings are still not modifiable from the UI. Another (probably very bad) solution would be to share that API key with our plugin through a permission. A better solution would be to have a mapService interface on the plugin SDK so TREK would fully own and centralize that functionality.
-- Pulling user-specific settings like: blur booking codes, preferred time format, etc.
-- Storing session state for things like persisting filters and views during trip tab changes.
+You can also:
+
+- Create, edit, and delete reservations
+- Customize which fields appear in each view
+- Plan and add public-transit journeys through connected services
 
 ## Permissions
 
@@ -73,6 +80,39 @@ await fetch('/api/admin/plugins/reservations/config', {
     return response.json()
 })
 ```
+
+## Current limitations and SDK constraints
+
+Some functionality is currently limited by the APIs exposed through the TREK
+plugin SDK.
+
+- **Reservation import from files**  
+  Automated import through KItinerary is not currently available to plugins.
+  An LLM-assisted importer may be possible, but PDF parsing and OCR would need
+  to be handled by the plugin or an external service.
+
+- **Navigation to linked resources**  
+  The plugin cannot currently navigate directly to related resources such as
+  costs or files. This requires a plugin navigation API that can reference
+  resources such as `costId` or `fileId`.
+
+- **Managing linked files**  
+  The SDK allows plugins to create file links, but does not currently expose
+  everything needed to edit or remove links from the `file_links` table.
+
+- **Plugin settings in the TREK interface**  
+  Reservations can optionally use Google Places, but instance-scoped plugin
+  settings cannot currently be managed through the TREK UI. Administrators
+  must configure the API key through the plugin configuration endpoint.
+
+- **Access to user preferences**  
+  Plugins cannot currently read preferences such as confirmation-code
+  blurring or the user's preferred time format.
+
+- **Persisting workspace state**  
+  Filters, grouping, sorting, and the selected view cannot currently be
+  preserved when navigating between trip tabs because plugins do not have
+  access to persistent session state.
 
 ## License
 
